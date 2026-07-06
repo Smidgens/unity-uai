@@ -4,7 +4,7 @@
 
 #if UNITY_EDITOR
 
-namespace Smidgenomics.Unity.UtilityAI.Editor
+namespace Smidgenomics.Unity.UAI.Editor
 {
 	using UnityEngine;
 	using UnityEditor;

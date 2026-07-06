@@ -1,6 +1,6 @@
 // smidgens @ github
 
-namespace Smidgenomics.Unity.UtilityAI
+namespace Smidgenomics.Unity.UAI
 {
 	using System;
 	using UnityEngine;
@@ -21,7 +21,7 @@ namespace Smidgenomics.Unity.UtilityAI
 
 #if UNITY_EDITOR
 
-namespace Smidgenomics.Unity.UtilityAI.Editor
+namespace Smidgenomics.Unity.UAI.Editor
 {
 	using System;
 	using UnityEngine;
@@ -65,19 +65,6 @@ namespace Smidgenomics.Unity.UtilityAI.Editor
 				minProp.floatValue = min;
 				maxProp.floatValue = max;
 
-				// minProp.floatValue = Mathf.Min(min, maxProp.floatValue);
-				// maxProp.floatValue = Mathf.Max(minProp.floatValue, maxProp.floatValue);
-				
-				//
-				// if (minProp.floatValue > maxProp.floatValue)
-				// {
-				// 	minProp.floatValue = maxProp.floatValue;
-				// }
-				//
-				// if (maxProp.floatValue < minProp.floatValue)
-				// {
-				// 	maxProp.floatValue = minProp.floatValue;
-				// }
 
 			}
 		}

@@ -5,7 +5,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Smidgenomics.Unity.UtilityAI
+namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 	using System;
@@ -30,9 +30,7 @@ namespace Smidgenomics.Unity.UtilityAI
 		
 			_manager.ForEachTrackedBrain((in UtilityManager.TrackedBrain tbrain) => brains.Add(tbrain));
 
-			// brains.OrderBy(x => GetDistanceToCamera(x.brain));
-
-			foreach (var tbrain in brains.OrderByDescending(x => GetDistanceToCamera(x.brain)))
+			foreach (var tbrain in brains.OrderByDescending(x => GetDistanceToCamera(x.AIBrain)))
 			{
 				DrawActivity(tbrain);
 			}
@@ -44,11 +42,9 @@ namespace Smidgenomics.Unity.UtilityAI
 			return new Vector2(spos.x, Screen.height - spos.y);
 		}
 
-		public static float GetDistanceToCamera(UtilityBrain brain)
+		public static float GetDistanceToCamera(UtilityAIBrain aiBrain)
 		{
-			return Vector3.Distance(Camera.main.transform.position, brain.GetContext().gameObject.transform.position);
-			
-			// return 0f;
+			return Vector3.Distance(Camera.main.transform.position, aiBrain.GetContext().gameObject.transform.position);
 		}
 
 		public static void ClampRectInsideOther(ref Rect rect, in Rect other)
@@ -78,7 +74,7 @@ namespace Smidgenomics.Unity.UtilityAI
 		// 
 		internal static void DrawActivity(in UtilityManager.TrackedBrain tbrain)
 		{
-			var brain = tbrain.brain;
+			var brain = tbrain.AIBrain;
 
 			var wpos = brain.GetContext().gameObject.transform.position;
 
@@ -86,8 +82,6 @@ namespace Smidgenomics.Unity.UtilityAI
 
 			var timerPadding = 2f;
 			
-			// var screenRect = new Rect(0, 0, Screen.width, Screen.height);
-
 			int bucketCount = brain.GetBucketCount();
 			int actionCount = brain.GetCurrentBucketActionCount();
 
@@ -135,7 +129,6 @@ namespace Smidgenomics.Unity.UtilityAI
 			ClampRectInsideOther(ref fullRect, screenRect);
 
 			
-			
 			Rect outerRect = fullRect;
 			outerRect.Resize(1);
 
@@ -145,12 +138,20 @@ namespace Smidgenomics.Unity.UtilityAI
 			UtilityIMGUI.DrawRect(outerRect2, Color.black);
 			UtilityIMGUI.DrawRect(outerRect, Color.white);
 			UtilityIMGUI.DrawRect(fullRect, Color.black);
+
+			var timerHeader = fullRect.SliceTop(UtilityDebugStyles.TIMER_HEIGHT * 2);
+
+			var lTimerRect = timerHeader.SliceLeft(timerHeader.height);
+			var rTimerRect = timerHeader.SliceRight(timerHeader.height);
+
+			DrawSelectorIcon(lTimerRect, brain.GetCurrentBucketSelector());
+			DrawSelectorIcon(rTimerRect, brain.GetCurrentActionSelector());
 			
-			DrawTimer(fullRect.SliceTop(UtilityDebugStyles.TIMER_HEIGHT), brain.GetBucketScoringProgress());
-			DrawTimer(fullRect.SliceTop(UtilityDebugStyles.TIMER_HEIGHT), brain.GetActionScoringProgress());
+			DrawTimer(timerHeader.SliceTop(UtilityDebugStyles.TIMER_HEIGHT), brain.GetBucketScoringProgress());
+			DrawTimer(timerHeader.SliceTop(UtilityDebugStyles.TIMER_HEIGHT), brain.GetActionScoringProgress());
 			fullRect.SliceTop(timerPadding);
 			
-			brain.ForEachBucket((in UtilityBrain.BucketRecord bucket) =>
+			brain.ForEachBucket((in UtilityAIBrain.BucketRecord bucket) =>
 			{
 				DrawBucketRow(ref fullRect, bucket, brain);
 			});
@@ -160,24 +161,57 @@ namespace Smidgenomics.Unity.UtilityAI
 		{
 			public string label;
 			public Color color;
+			public Texture2D icon;
 
 			public LegendItem(string l, Color c)
 			{
 				label = l;
 				color = c;
+				icon = null;
+			}
+			
+			public LegendItem(string l, Texture2D i)
+			{
+				label = l;
+				color = Color.white;
+				icon = i;
 			}
 		}
 
-		private static readonly LegendItem[] _legendItems =
+		private static readonly List<LegendItem> _legendItems = new()
 		{
-			new LegendItem("Active", UtilityConstants.COLOR_ACTION_ACTIVE),
-			new LegendItem("Cancelled", UtilityConstants.COLOR_ACTION_CANCELLED),
-			new LegendItem("Uncancellable", UtilityConstants.COLOR_ACTION_UNCANCELLABLE),
-			new LegendItem("Deactivating", UtilityConstants.COLOR_ACTION_DEACTIVATING),
-			new LegendItem("Finished", UtilityConstants.COLOR_ACTION_FINISHED),
-			new LegendItem("Selectable", UtilityConstants.COLOR_SELECTABLE),
-			new LegendItem("Muted", UtilityConstants.COLOR_ACTION_MUTED),
+			new LegendItem("Active", UAIConstants.COLOR_ACTION_ACTIVE),
+			new LegendItem("Cancelled", UAIConstants.COLOR_ACTION_CANCELLED),
+			new LegendItem("Uncancellable", UAIConstants.COLOR_ACTION_UNCANCELLABLE),
+			new LegendItem("Deactivating", UAIConstants.COLOR_ACTION_DEACTIVATING),
+			new LegendItem("Finished", UAIConstants.COLOR_ACTION_FINISHED),
+			new LegendItem("Selectable", UAIConstants.COLOR_SELECTABLE),
+			new LegendItem("Muted", UAIConstants.COLOR_MUTED),
 		};
+
+		private static Dictionary<Type, Texture2D> _selectorIcons = new();
+
+		private static void DrawSelectorIcon(in Rect rect, UtilityAISelector selector)
+		{
+			var icon = GetSelectorIcon(selector);
+			GUI.DrawTexture(rect.Resized(-2), icon);
+		}
+
+		private static Texture2D GetSelectorIcon(UtilityAISelector selector)
+		{
+			if (!_selectorIcons.ContainsKey(selector.GetType()))
+			{
+				var path = selector.GetDebugIconPath();
+				var icon = Resources.Load<Texture2D>(path);
+				_selectorIcons[selector.GetType()] = icon;
+
+				_legendItems.Add(new LegendItem(selector.GetDisplayName(), icon));
+				
+				return icon;
+			}
+			
+			return _selectorIcons[selector.GetType()];
+		}
 
 		private static void DrawLegend()
 		{
@@ -187,14 +221,14 @@ namespace Smidgenomics.Unity.UtilityAI
 			
 			var screenRect = new Rect(0, 0, Screen.width, Screen.height);
 
-			var labelWidth = 100;
+			var labelWidth = 200;
 			var legendWidth = labelWidth + padding * 2;
 			
 			var rowHeight = labelheight + padding * 2;
 
 			legendWidth += rowHeight + padding;
 
-			var legendRect = new Rect(0, 0, legendWidth, _legendItems.Length * rowHeight);
+			var legendRect = new Rect(0, 0, legendWidth, _legendItems.Count * rowHeight);
 			legendRect.position = new Vector2(screenRect.width - legendRect.width, 0);
 
 			UtilityIMGUI.DrawRect(legendRect, Color.black);
@@ -206,49 +240,59 @@ namespace Smidgenomics.Unity.UtilityAI
 				iconRect.Resize(-iconRect.width * 0.3f);
 				itemRect.SliceLeft(padding);
 				UtilityIMGUI.DrawLabel(itemRect, item.label, Color.white, labelStyle);
-				UtilityIMGUI.DrawRect(iconRect, item.color);
 
+				if (item.icon)
+				{
+					GUI.DrawTexture(iconRect, item.icon);
+				}
+				else 
+				{
+					UtilityIMGUI.DrawRect(iconRect, item.color);
+					
+				}
 			}
 
 		}
 
 		// 
-		private static void DrawBucketRow(ref Rect rect, in UtilityBrain.BucketRecord bucket, UtilityBrain brain)
+		private static void DrawBucketRow(ref Rect rect, in UtilityAIBrain.BucketRecord bucket, UtilityAIBrain aiBrain)
 		{
 			
 			DrawBucketHeader(rect.SliceTop(UtilityDebugStyles.BucketRowHeight), bucket);
 			
 			var tempRect = rect;
 
-			var currentActionBucketID = brain.GetCurrentActionBucketID();
+			var currentActionBucketID = aiBrain.GetCurrentActionBucketID();
 
-			if (brain.GetCurrentBucketID() == bucket.ID)
+			if (aiBrain.GetCurrentBucketID() == bucket.ID)
 			{
-				brain.ForEachActionInBucket(bucket.ID, (in UtilityBrain.ActionRecord action) =>
+				aiBrain.ForEachActionInBucket(bucket.ID, (in UtilityAIBrain.ActionRecord action) =>
 				{
-					DrawActionRow(tempRect.SliceTop(UtilityDebugStyles.ActionRowHeight), action, brain);
+					DrawActionRow(tempRect.SliceTop(UtilityDebugStyles.ActionRowHeight), action, aiBrain);
 				});
 			}
 			else if (currentActionBucketID == bucket.ID)
 			{
-				ref readonly UtilityBrain.ActionRecord action = ref brain.GetCurrentAction();
-				DrawActionRow(tempRect.SliceTop(UtilityDebugStyles.ActionRowHeight), action, brain);
+				ref readonly UtilityAIBrain.ActionRecord action = ref aiBrain.GetCurrentAction();
+				DrawActionRow(tempRect.SliceTop(UtilityDebugStyles.ActionRowHeight), action, aiBrain);
 			}
 			rect = tempRect;
 		}
 
-		private static void DrawBucketHeader(in Rect rect, in UtilityBrain.BucketRecord bucket)
+		private static void DrawBucketHeader(in Rect rect, in UtilityAIBrain.BucketRecord bucket)
 		{
-			var color = UtilityConstants.COLOR_SELECTABLE;
+			var color = UAIConstants.COLOR_SELECTABLE;
 
 			if (Mathf.Approximately(bucket.score, 0f))
 			{
-				color = UtilityConstants.COLOR_ACTION_MUTED;
+				color = UAIConstants.COLOR_MUTED;
 			}
 			
-			UtilityIMGUI.DrawRect(rect, color);
+			UtilityIMGUI.DrawRect(rect, Color.black);
+			UtilityIMGUI.DrawRect(rect.Resized(-1), color);
+	
 			var headerInnerRect = rect;
-			headerInnerRect.Resize(-UtilityDebugStyles.TXT_PADDING);
+			headerInnerRect.Resize(-UtilityDebugStyles.TXT_PADDING - 1);
 			UtilityIMGUI.DrawLabel(headerInnerRect, bucket.name, Color.black, UtilityDebugStyles.LargeLabelStyle);
 			var scoreLabel = new GUIContent(bucket.score.ToString("0.0000"));
 			var scoreSize = UtilityDebugStyles.LargeLabelStyle.CalcSize(scoreLabel);
@@ -270,7 +314,7 @@ namespace Smidgenomics.Unity.UtilityAI
 		}
 
 		// 
-		private static void DrawActionRow(Rect rect, in UtilityBrain.ActionRecord action, UtilityBrain brain)
+		private static void DrawActionRow(Rect rect, in UtilityAIBrain.ActionRecord action, UtilityAIBrain aiBrain)
 		{
 			UtilityIMGUI.DrawRect(rect, Color.black);
 
@@ -281,9 +325,9 @@ namespace Smidgenomics.Unity.UtilityAI
 
 			rect.SliceLeft(UtilityDebugStyles.TXT_PADDING);
 
-			Color actionColor = GetActionColor(action, brain);
+			Color actionColor = GetActionColor(action, aiBrain);
 
-			UtilityIMGUI.DrawRect(iconRect, GetActionColor(action, brain));
+			UtilityIMGUI.DrawRect(iconRect, GetActionColor(action, aiBrain));
 
 			var lrect = rect;
 			lrect.height = UtilityDebugStyles.LabelHeight;
@@ -313,10 +357,10 @@ namespace Smidgenomics.Unity.UtilityAI
 		}
 		
 		// 
-		internal static string GetLongestActionName(UtilityBrain brain)
+		internal static string GetLongestActionName(UtilityAIBrain aiBrain)
 		{
 			var longest = "";
-			foreach (var action in brain._actionRecords)
+			foreach (var action in aiBrain._actionRecords)
 			{
 				if (action.template.Name.Length > longest.Length)
 				{
@@ -327,43 +371,43 @@ namespace Smidgenomics.Unity.UtilityAI
 		}
 		
 		// 
-		private static Color GetActionColor(in UtilityBrain.ActionRecord action, UtilityBrain brain)
+		private static Color GetActionColor(in UtilityAIBrain.ActionRecord action, UtilityAIBrain aiBrain)
 		{
-			if (brain.GetCurrentActionID() == action.actionID)
+			if (aiBrain.GetCurrentActionID() == action.actionID)
 			{
 				if (action.deactivating)
 				{
-					return UtilityConstants.COLOR_ACTION_DEACTIVATING;
+					return UAIConstants.COLOR_ACTION_DEACTIVATING;
 				}
 
 				if (!action.cancellable)
 				{
-					return UtilityConstants.COLOR_ACTION_UNCANCELLABLE;
+					return UAIConstants.COLOR_ACTION_UNCANCELLABLE;
 				}
 				
-				return UtilityConstants.COLOR_ACTION_ACTIVE;
+				return UAIConstants.COLOR_ACTION_ACTIVE;
 			}
 			else if (action.OnCooldown())
 			{
 				if (action.cancelled)
 				{
-					return UtilityConstants.COLOR_ACTION_CANCELLED;
+					return UAIConstants.COLOR_ACTION_CANCELLED;
 				}
-				return UtilityConstants.COLOR_ACTION_FINISHED;
+				return UAIConstants.COLOR_ACTION_FINISHED;
 			}
 
 			if (Mathf.Approximately(action.score, 0))
 			{
-				return UtilityConstants.COLOR_ACTION_MUTED;
+				return UAIConstants.COLOR_MUTED;
 			}
 			
-			return UtilityConstants.COLOR_SELECTABLE;
+			return UAIConstants.COLOR_SELECTABLE;
 		}
 
 	}
 }
 
-namespace Smidgenomics.Unity.UtilityAI
+namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 	using System;

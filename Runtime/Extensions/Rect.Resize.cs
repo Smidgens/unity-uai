@@ -1,11 +1,18 @@
 // smidgens @ github
 
-namespace Smidgenomics.Unity.UtilityAI
+namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 
 	internal static partial class Rect_
 	{
+
+		public static Rect Resized(this in Rect r, in float s)
+		{
+			var resized = r;
+			resized.Resize(s);
+			return resized;
+		}
 
 		/// <summary>
 		/// Resizes a given rect from its center

@@ -7,7 +7,7 @@ using System.Linq;
 
 #pragma warning disable 0414
 
-namespace Smidgenomics.Unity.UtilityAI
+namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 	using System;
@@ -18,6 +18,9 @@ namespace Smidgenomics.Unity.UtilityAI
 	[DefaultExecutionOrder(-2)]
 	internal sealed class UtilityManager : MonoBehaviour
 	{
+		public static readonly UtilityAISelector DefaultActionSelector = new UtilityAISelector_TopScore();
+		public static readonly UtilityAISelector DefaultBucketSelector = new UtilityAISelector_TopScore();
+
 		public static UtilityManager GetInstance()
 		{
 			if (_instance == null && !_closing)
@@ -27,19 +30,20 @@ namespace Smidgenomics.Unity.UtilityAI
 			}
 			return _instance;
 		}
+		
 
 		public event Action onUpdate = null;
 		public event Action onGUI = null;
 
-		internal void RegisterBrain(UtilityBrain Brain)
+		internal void RegisterBrain(UtilityAIBrain aiBrain)
 		{
-			if (FindBrainIndex(Brain) > -1)
+			if (FindBrainIndex(aiBrain) > -1)
 			{
 				return;
 			}
 
 			TrackedBrain tbrain = new TrackedBrain();
-			tbrain.brain = Brain;
+			tbrain.AIBrain = aiBrain;
 
 			var blist = _brains.ToList();
 			blist.Add(tbrain);
@@ -47,9 +51,9 @@ namespace Smidgenomics.Unity.UtilityAI
 			_brains = blist.ToArray();
 		}
 		
-		internal void UnregisterBrain(UtilityBrain Brain)
+		internal void UnregisterBrain(UtilityAIBrain aiBrain)
 		{
-			int index = FindBrainIndex(Brain);
+			int index = FindBrainIndex(aiBrain);
 			if (index < 0)
 			{
 				return;
@@ -70,7 +74,7 @@ namespace Smidgenomics.Unity.UtilityAI
 
 		internal struct TrackedBrain
 		{
-			public UtilityBrain brain;
+			public UtilityAIBrain AIBrain;
 		}
 
 		private static bool _closing = false;
@@ -88,12 +92,12 @@ namespace Smidgenomics.Unity.UtilityAI
 			return value;
 		}
 		
-		private int FindBrainIndex(UtilityBrain brain)
+		private int FindBrainIndex(UtilityAIBrain aiBrain)
 		{
 			for (int i = 0; i < _brains.Length; i++)
 			{
 				ref readonly TrackedBrain tbrain = ref _brains[i];
-				if (tbrain.brain == brain)
+				if (tbrain.AIBrain == aiBrain)
 				{
 					return i;
 				}

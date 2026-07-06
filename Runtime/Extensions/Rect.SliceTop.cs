@@ -1,6 +1,6 @@
 // smidgens @ github
 
-namespace Smidgenomics.Unity.UtilityAI
+namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 
@@ -24,7 +24,7 @@ namespace Smidgenomics.Unity.UtilityAI
 	}
 }
 
-namespace Smidgenomics.Unity.UtilityAI
+namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 

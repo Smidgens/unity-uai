@@ -1,6 +1,6 @@
 // smidgens @ github
 
-namespace Smidgenomics.Unity.UtilityAI
+namespace Smidgenomics.Unity.UAI
 {
 	using System.Collections.Generic;
 	using System.Linq;

@@ -1,19 +1,17 @@
 {
-  "name": "com.smidgenomics.unity-utility",
+  "name": "com.smidgenomics.unity-uai",
   "version": "0.1.0",
-  "displayName": "Utility G.AI",
+  "displayName": "Utility AI",
   "description": "Utility (Game) AI for Unity",
-  "license": "MIT",
+  "license": "NON-AI-MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Smidgens/unity-utility.git"
+    "url": "git+https://github.com/Smidgens/unity-uai.git"
   },
   "author": {
     "name": "Unnar Krist",
     "url": "https://github.com/Smidgens"
   },
   "hideInEditor": false,
-  "type": "tool",
-  "keywords":[
-  ]
+  "keywords":[]
 }

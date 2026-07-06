@@ -1,10 +1,10 @@
 // smidgens @ github
 
-namespace Smidgenomics.Unity.UtilityAI
+namespace Smidgenomics.Unity.UAI
 {
 	public static partial class UtilityBucketSO_
 	{
-		public static UtilityBrain CreateBrain(this UtilityBucketSO bucket, UtilityBrainInitConfig config)
+		public static UtilityAIBrain CreateBrain(this UtilityAIBucket bucket, UtilityBrainInitConfig config)
 		{
 			// config.actions = bucket.GetActions();
 

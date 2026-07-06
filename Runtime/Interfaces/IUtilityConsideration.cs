@@ -2,7 +2,7 @@
 
 // ReSharper disable All
 
-namespace Smidgenomics.Unity.UtilityAI
+namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 	using System;
@@ -17,7 +17,7 @@ namespace Smidgenomics.Unity.UtilityAI
 		// display info
 		public string Name { get; }
 
-		public float GetScore(in UtilityContext context);
+		public float GetScore(in UtilityAIContext context);
 	}
 	
 }
