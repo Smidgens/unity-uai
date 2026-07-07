@@ -3,8 +3,8 @@
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
-	
-	[DisplayName("Random Range")]
+
+	[DisplayName("Random")]
 	internal sealed class UAIConsideration_Random : UAIConsideration
 	{
 		public override float GetScore(in UAIAgentContext Context)

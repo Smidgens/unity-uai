@@ -40,14 +40,7 @@ namespace Smidgenomics.Unity.UAI
 
 namespace Smidgenomics.Unity.UAI.Editor
 {
-	using UnityEngine;
 	using UnityEditor;
-	using System;
-	using System.Linq;
-	using System.Collections.Generic;
-	using UObject = UnityEngine.Object;
-	using SP = UnityEditor.SerializedProperty;
-	using RL = UnityEditorInternal.ReorderableList;
 
 	[CustomEditor(typeof(UAIBehaviour), true)]
 	internal sealed class _UAIBehaviour : Editor
@@ -68,16 +61,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 		protected override bool ShouldHideOpenButton()
 		{
 			return true;
-		}
-
-		private void OnEnable()
-		{
-		
-		}
-
-		private void OnDisable()
-		{
-			
 		}
 
 	}

@@ -19,15 +19,6 @@ namespace Smidgenomics.Unity.UAI
 
 		public UAIAgentContext GetContext() => _context;
 
-		public static UAIBrain CreateBrain(in UAIBrainInitConfig config)
-		{
-			var brain = new UAIBrain();
-			brain._contextAgent = config.agent;
-			brain._behaviour = config.behaviourTemplate;
-			brain._bucketSelector = brain._behaviour._bucketSelector ?? UAIDefaults.DefaultBucketSelector;
-			return brain;
-		}
-
 		// 
 		public int GetCurrentActionID() => _currentActionID;
 		
@@ -51,7 +42,7 @@ namespace Smidgenomics.Unity.UAI
 			? _bucketRecords[_currentBucketID].bucketScoringRate
 			: _defaultBucketScoringRate;
 		}
-		
+
 		public float GetCurrentActionScoringRate()
 		{
 			return IsValidBucketID(_currentBucketID)
@@ -130,10 +121,27 @@ namespace Smidgenomics.Unity.UAI
 			}
 			_actionScoringRoutine = null;
 		}
+	
+		/// <summary>
+		/// Clean up spawned objects
+		/// </summary>
+		public void Dispose()
+		{
+			
+		}
 
 		public bool IsValidActionID(int actionID) => _actionRecords.IsValidIndex(actionID);
 		
 		public bool IsValidBucketID(int bucketID) => _bucketRecords.IsValidIndex(bucketID);
+		
+		internal static UAIBrain CreateBrain(in UAIBrainInitConfig config)
+		{
+			var brain = new UAIBrain();
+			brain._contextAgent = config.agent;
+			brain._behaviour = config.behaviourTemplate;
+			brain._bucketSelector = brain._behaviour._bucketSelector ?? UAIDefaults.DefaultBucketSelector;
+			return brain;
+		}
 
 		internal void ForEachActionInBucket(int bucketID, ActionRefRO<ActionRecord> fn)
 		{

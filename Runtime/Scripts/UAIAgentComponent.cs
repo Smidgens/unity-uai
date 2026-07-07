@@ -9,19 +9,17 @@ namespace Smidgenomics.Unity.UAI
 	public sealed class UAIAgentComponent : MonoBehaviour, IUAIAgent
 	{
 		[SerializeField] private UAIBehaviour _template;
-
 		[SerializeField] internal bool _debugActivity;
 
 		private UAIBrain _brain;
 
 		private void Start()
 		{
-			var init = new UAIBrainInitConfig
+			_brain = UAIFactory.CreateBrain(new UAIBrainInitConfig
 			{
 				agent = this,
 				behaviourTemplate = _template
-			};
-			_brain = UAIBrain.CreateBrain(init);
+			});
 			_brain.StartLogic();
 		}
 
@@ -32,7 +30,7 @@ namespace Smidgenomics.Unity.UAI
 
 		private void OnDestroy()
 		{
-			// TODO: better GC cleanup if needed
+			_brain.Dispose();
 		}
 	}
 }

@@ -12,21 +12,21 @@ namespace Smidgenomics.Unity.UAI
 
 	internal static class UAIDebugGUI
 	{
-
-		private static UAIManager _manager = null;
-
 		internal static void DrawActivityOverlay()
 		{
-			if (!_manager)
+			
+			var manager = UAIManager.GetInstance();
+
+			if (!manager)
 			{
-				_manager = UAIManager.GetInstance();
+				return;
 			}
 			
 			DrawLegend();
 
 			List<UAIManager.TrackedBrain> brains = new();
 		
-			_manager.ForEachTrackedBrain((in UAIManager.TrackedBrain tbrain) => brains.Add(tbrain));
+			manager.ForEachTrackedBrain((in UAIManager.TrackedBrain tbrain) => brains.Add(tbrain));
 
 			foreach (var tbrain in brains.OrderByDescending(x => GetDistanceToCamera(x.AIBrain)))
 			{

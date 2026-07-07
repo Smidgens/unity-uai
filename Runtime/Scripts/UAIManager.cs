@@ -104,6 +104,7 @@ namespace Smidgenomics.Unity.UAI
 		private void OnDestroy()
 		{
 			StopAllCoroutines();
+			_instance = null;
 		}
 
 		public static void StopRoutine(Coroutine routine)
