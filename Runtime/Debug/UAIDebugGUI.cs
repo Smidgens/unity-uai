@@ -92,29 +92,29 @@ namespace Smidgenomics.Unity.UAI
 			}
 
 			// 
-			float longestWidth = UtilityDebugStyles.LabelStyle.CalcSize(new GUIContent(GetLongestActionName(brain))).x;
+			float longestWidth = UAIDebugStyles.LabelStyle.CalcSize(new GUIContent(GetLongestActionName(brain))).x;
 
 			// 
-			float rowWidth = UtilityDebugStyles.TXT_PADDING * 2;
+			float rowWidth = UAIDebugStyles.TXT_PADDING * 2;
 
 			// icon column
-			rowWidth += UtilityDebugStyles.ActionRowHeight + UtilityDebugStyles.TXT_PADDING;
+			rowWidth += UAIDebugStyles.ActionRowHeight + UAIDebugStyles.TXT_PADDING;
 
 			// action name
-			rowWidth += UtilityDebugStyles.LabelStyle.CalcSize(new GUIContent(GetLongestActionName(brain))).x;
+			rowWidth += UAIDebugStyles.LabelStyle.CalcSize(new GUIContent(GetLongestActionName(brain))).x;
 			rowWidth += 50; // extra spacing
 	
 			// cooldown column
-			rowWidth += 50 + UtilityDebugStyles.TXT_PADDING;
+			rowWidth += 50 + UAIDebugStyles.TXT_PADDING;
 
 			// score column
-			rowWidth += UtilityDebugStyles.MaxScoreWidth;
+			rowWidth += UAIDebugStyles.MaxScoreWidth;
 
 			// 
 			float totalHeight =
-			UtilityDebugStyles.ActionRowHeight * actionCount
-			+ UtilityDebugStyles.BucketRowHeight * bucketCount;
-			totalHeight += UtilityDebugStyles.TIMER_HEIGHT * 2;
+			UAIDebugStyles.ActionRowHeight * actionCount
+			+ UAIDebugStyles.BucketRowHeight * bucketCount;
+			totalHeight += UAIDebugStyles.TIMER_HEIGHT * 2;
 
 			totalHeight += timerPadding;
 
@@ -133,11 +133,11 @@ namespace Smidgenomics.Unity.UAI
 			Rect outerRect2 = outerRect;
 			outerRect2.Resize(1);
 
-			UtilityIMGUI.DrawRect(outerRect2, Color.black);
-			UtilityIMGUI.DrawRect(outerRect, Color.white);
-			UtilityIMGUI.DrawRect(fullRect, Color.black);
+			DrawRect(outerRect2, Color.black);
+			DrawRect(outerRect, Color.white);
+			DrawRect(fullRect, Color.black);
 
-			var timerHeader = fullRect.SliceTop(UtilityDebugStyles.TIMER_HEIGHT * 2);
+			var timerHeader = fullRect.SliceTop(UAIDebugStyles.TIMER_HEIGHT * 2);
 
 			var lTimerRect = timerHeader.SliceLeft(timerHeader.height);
 			var rTimerRect = timerHeader.SliceRight(timerHeader.height);
@@ -145,8 +145,8 @@ namespace Smidgenomics.Unity.UAI
 			DrawSelectorIcon(lTimerRect, brain.GetCurrentBucketSelector());
 			DrawSelectorIcon(rTimerRect, brain.GetCurrentActionSelector());
 			
-			DrawTimer(timerHeader.SliceTop(UtilityDebugStyles.TIMER_HEIGHT), brain.GetBucketScoringProgress());
-			DrawTimer(timerHeader.SliceTop(UtilityDebugStyles.TIMER_HEIGHT), brain.GetActionScoringProgress());
+			DrawTimer(timerHeader.SliceTop(UAIDebugStyles.TIMER_HEIGHT), brain.GetBucketScoringProgress());
+			DrawTimer(timerHeader.SliceTop(UAIDebugStyles.TIMER_HEIGHT), brain.GetActionScoringProgress());
 			fullRect.SliceTop(timerPadding);
 			
 			brain.ForEachBucket((in UAIBrain.BucketRecord bucket) =>
@@ -213,9 +213,9 @@ namespace Smidgenomics.Unity.UAI
 
 		private static void DrawLegend()
 		{
-			var labelStyle = UtilityDebugStyles.SmallLabelStyle;
+			var labelStyle = UAIDebugStyles.SmallLabelStyle;
 			var labelheight = labelStyle.CalcSize(new GUIContent("")).y;
-			var padding = UtilityDebugStyles.TXT_PADDING_SM;
+			var padding = UAIDebugStyles.TXT_PADDING_SM;
 			
 			var screenRect = new Rect(0, 0, Screen.width, Screen.height);
 
@@ -229,7 +229,7 @@ namespace Smidgenomics.Unity.UAI
 			var legendRect = new Rect(0, 0, legendWidth, _legendItems.Count * rowHeight);
 			legendRect.position = new Vector2(screenRect.width - legendRect.width, 0);
 
-			UtilityIMGUI.DrawRect(legendRect, Color.black);
+			DrawRect(legendRect, Color.black);
 			
 			foreach(var item in _legendItems)
 			{
@@ -237,7 +237,7 @@ namespace Smidgenomics.Unity.UAI
 				var iconRect = itemRect.SliceLeft(itemRect.height);
 				iconRect.Resize(-iconRect.width * 0.3f);
 				itemRect.SliceLeft(padding);
-				UtilityIMGUI.DrawLabel(itemRect, item.label, Color.white, labelStyle);
+				DrawLabel(itemRect, item.label, Color.white, labelStyle);
 
 				if (item.icon)
 				{
@@ -245,7 +245,7 @@ namespace Smidgenomics.Unity.UAI
 				}
 				else 
 				{
-					UtilityIMGUI.DrawRect(iconRect, item.color);
+					DrawRect(iconRect, item.color);
 					
 				}
 			}
@@ -256,7 +256,7 @@ namespace Smidgenomics.Unity.UAI
 		private static void DrawBucketRow(ref Rect rect, in UAIBrain.BucketRecord bucket, UAIBrain aiBrain)
 		{
 			
-			DrawBucketHeader(rect.SliceTop(UtilityDebugStyles.BucketRowHeight), bucket);
+			DrawBucketHeader(rect.SliceTop(UAIDebugStyles.BucketRowHeight), bucket);
 			
 			var tempRect = rect;
 
@@ -266,13 +266,13 @@ namespace Smidgenomics.Unity.UAI
 			{
 				aiBrain.ForEachActionInBucket(bucket.ID, (in UAIBrain.ActionRecord action) =>
 				{
-					DrawActionRow(tempRect.SliceTop(UtilityDebugStyles.ActionRowHeight), action, aiBrain);
+					DrawActionRow(tempRect.SliceTop(UAIDebugStyles.ActionRowHeight), action, aiBrain);
 				});
 			}
 			else if (currentActionBucketID == bucket.ID)
 			{
 				ref readonly UAIBrain.ActionRecord action = ref aiBrain.GetCurrentAction();
-				DrawActionRow(tempRect.SliceTop(UtilityDebugStyles.ActionRowHeight), action, aiBrain);
+				DrawActionRow(tempRect.SliceTop(UAIDebugStyles.ActionRowHeight), action, aiBrain);
 			}
 			rect = tempRect;
 		}
@@ -286,71 +286,71 @@ namespace Smidgenomics.Unity.UAI
 				color = UAIConstants.COLOR_MUTED;
 			}
 			
-			UtilityIMGUI.DrawRect(rect, Color.black);
-			UtilityIMGUI.DrawRect(rect.Resized(-1), color);
+			DrawRect(rect, Color.black);
+			DrawRect(rect.Resized(-1), color);
 	
 			var headerInnerRect = rect;
-			headerInnerRect.Resize(-UtilityDebugStyles.TXT_PADDING - 1);
-			UtilityIMGUI.DrawLabel(headerInnerRect, bucket.name, Color.black, UtilityDebugStyles.LargeLabelStyle);
+			headerInnerRect.Resize(-UAIDebugStyles.TXT_PADDING - 1);
+			DrawLabel(headerInnerRect, bucket.name, Color.black, UAIDebugStyles.LargeLabelStyle);
 			var scoreLabel = new GUIContent(bucket.score.ToString("0.0000"));
-			var scoreSize = UtilityDebugStyles.LargeLabelStyle.CalcSize(scoreLabel);
+			var scoreSize = UAIDebugStyles.LargeLabelStyle.CalcSize(scoreLabel);
 			var scoreRect = headerInnerRect;
 			scoreRect.position += new Vector2(scoreRect.width - scoreSize.x, 0);
-			UtilityIMGUI.DrawLabel(scoreRect, scoreLabel.text, Color.black, UtilityDebugStyles.LargeLabelStyle);
+			DrawLabel(scoreRect, scoreLabel.text, Color.black, UAIDebugStyles.LargeLabelStyle);
 		}
 
 		// 
 		private static void DrawTimer(in Rect rect, float progress)
 		{
-			UtilityIMGUI.DrawRect(rect, Color.black);
+			DrawRect(rect, Color.black);
 			var innerRect = rect;
 			innerRect.Resize(-2f);
 			innerRect.height += 1;
 			innerRect.width *= progress;
 			var color = Color.Lerp(Color.white * 0.3f, Color.white, progress);
-			UtilityIMGUI.DrawRect(innerRect, color);
+			DrawRect(innerRect, color);
 		}
 
 		// 
 		private static void DrawActionRow(Rect rect, in UAIBrain.ActionRecord action, UAIBrain aiBrain)
 		{
-			UtilityIMGUI.DrawRect(rect, Color.black);
+			DrawRect(rect, Color.black);
 
-			rect.Resize(-UtilityDebugStyles.TXT_PADDING);
+			rect.Resize(-UAIDebugStyles.TXT_PADDING);
 
 			var iconRect = rect.SliceLeft(rect.height);
 			iconRect.Resize(-iconRect.width * 0.2f);
 
-			rect.SliceLeft(UtilityDebugStyles.TXT_PADDING);
+			rect.SliceLeft(UAIDebugStyles.TXT_PADDING);
 
 			Color actionColor = GetActionColor(action, aiBrain);
 
-			UtilityIMGUI.DrawRect(iconRect, GetActionColor(action, aiBrain));
+			DrawRect(iconRect, GetActionColor(action, aiBrain));
 
 			var lrect = rect;
-			lrect.height = UtilityDebugStyles.LabelHeight;
+			lrect.height = UAIDebugStyles.LabelHeight;
 			lrect.center = rect.center;
 
 			var textColor = Color.white;
 			var onCooldown = action.OnCooldown();
 
-			lrect.SliceLeft(UtilityDebugStyles.TXT_PADDING);
-			lrect.SliceRight(UtilityDebugStyles.TXT_PADDING);
-			var wCol = lrect.SliceRight(UtilityDebugStyles.MaxScoreWidth);
-			lrect.SliceRight(UtilityDebugStyles.TXT_PADDING);
+			lrect.SliceLeft(UAIDebugStyles.TXT_PADDING);
+			lrect.SliceRight(UAIDebugStyles.TXT_PADDING);
+			var wCol = lrect.SliceRight(UAIDebugStyles.MaxScoreWidth);
+			lrect.SliceRight(UAIDebugStyles.TXT_PADDING);
 
 			var cdCol = lrect.SliceRight(50);
-			lrect.SliceRight(UtilityDebugStyles.TXT_PADDING);
+			lrect.SliceRight(UAIDebugStyles.TXT_PADDING);
 
-			GUI.Label(lrect, action.template.Name, UtilityDebugStyles.LabelStyle);
-			GUI.Label(wCol, action.score.ToString("0.00000"), UtilityDebugStyles.ScoreLabelStyle);
+			GUI.Label(lrect, action.template.Name, UAIDebugStyles.LabelStyle);
+			GUI.Label(wCol, action.score.ToString("0.00000"), UAIDebugStyles.ScoreLabelStyle);
 
 			if (onCooldown)
 			{
 				var remainder = action.cooldownEnd - Time.time;
 				int val = remainder < 1 ? (int)(remainder * 1000) : (int)remainder;
 				var timeLabel = val + (remainder < 1 ? "ms" : "s");
-				GUI.Label(cdCol, timeLabel, UtilityDebugStyles.CountdownLabelStyle);
+				GUI.Label(cdCol, timeLabel, UAIDebugStyles.CountdownLabelStyle);
 			}
 		}
 		
@@ -401,6 +401,34 @@ namespace Smidgenomics.Unity.UAI
 			
 			return UAIConstants.COLOR_SELECTABLE;
 		}
+		
+		private static void DrawRect(in Rect rect, Color color)
+		{
+			var tColor = GUI.color;
+			GUI.color = color;
+			if (WhiteTex == null || !WhiteTex.Value)
+			{
+				WhiteTex = new(() =>
+				{
+					var t = new Texture2D(1,1);
+					t.SetPixel(0,0, Color.white);
+					t.Apply();
+					return t;
+				});
+			}
+			GUI.DrawTexture(rect, WhiteTex.Value);
+			GUI.color = tColor;
+		}
+
+		private static void DrawLabel(in Rect rect, string text, Color color, GUIStyle style = null)
+		{
+			var tColor = GUI.color;
+			GUI.color = color; 
+			GUI.Label(rect, text, style ?? GUI.skin.label);
+			GUI.color = tColor; 
+		}
+
+		private static Lazy<Texture2D> WhiteTex = null;
 
 	}
 }
@@ -410,7 +438,7 @@ namespace Smidgenomics.Unity.UAI
 	using UnityEngine;
 	using System;
 
-	internal static class UtilityDebugStyles
+	internal static class UAIDebugStyles
 	{
 		public const float TXT_PADDING = 2f;
 		public const float TXT_PADDING_SM = 1f;

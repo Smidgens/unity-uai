@@ -7,7 +7,7 @@ namespace Smidgenomics.Unity.UAI
 	using UnityEngine;
 	using System;
 
-	// TODO: Consider if this can be templated or extended (custom context payload)
+	// Note: Consider if this can be templated or extended (custom context payload)
 	public struct UAIAgentContext
 	{
 		// root object
@@ -32,19 +32,16 @@ namespace Smidgenomics.Unity.UAI
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
-	using System;
 	using System.Collections.Generic;
+	using System.Runtime.InteropServices;
 
-	// c++ unions are nice...
-	[System.Serializable]
+	[StructLayout(LayoutKind.Explicit)]
 	public struct UAIMemoryValue
 	{
-		public object Object { get; set; }
-		public int Integer { get; set; }
-		public float Float { get; set; }
-		public bool Boolean { get; set; }
-		public string String { get; set; }
-		public Vector3 Vector { get; set; }
+		[FieldOffset(0)] public object objectValue;
+		[FieldOffset(0)] public int intValue;
+		[FieldOffset(0)] public bool boolValue;
+		[FieldOffset(0)] public float floatValue;
 	}
 }
 

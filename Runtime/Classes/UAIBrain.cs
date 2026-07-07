@@ -21,7 +21,7 @@ namespace Smidgenomics.Unity.UAI
 
 		// 
 		public int GetCurrentActionID() => _currentActionID;
-		
+
 		// 
 		public int GetCurrentBucketID() => _currentBucketID;
 
@@ -111,6 +111,8 @@ namespace Smidgenomics.Unity.UAI
 				return;
 			}
 
+			_memory.ClearAllValues();
+
 			_running = false;
 
 			if (_cachedManager)
@@ -127,13 +129,13 @@ namespace Smidgenomics.Unity.UAI
 		/// </summary>
 		public void Dispose()
 		{
-			
+			// GC cleanup if necessary
 		}
 
 		public bool IsValidActionID(int actionID) => _actionRecords.IsValidIndex(actionID);
-		
+
 		public bool IsValidBucketID(int bucketID) => _bucketRecords.IsValidIndex(bucketID);
-		
+
 		internal static UAIBrain CreateBrain(in UAIBrainInitConfig config)
 		{
 			var brain = new UAIBrain();
@@ -170,27 +172,26 @@ namespace Smidgenomics.Unity.UAI
 			}
 		}
 
-		private Coroutine _actionScoringRoutine = default;
-		private Coroutine _bucketScoringRoutine = default;
-		private UAIAgentContext _context = default;
+		private Coroutine _actionScoringRoutine;
+		private Coroutine _bucketScoringRoutine;
+		private UAIAgentContext _context;
 		internal ActionRecord[] _actionRecords = Array.Empty<ActionRecord>();
 		private BucketRecord[] _bucketRecords =  Array.Empty<BucketRecord>();
-		private UAIManager _cachedManager = null;
-		private bool _deactivatingAction = false;
-		private bool _running = false;
+		private UAIManager _cachedManager;
+		private bool _deactivatingAction;
+		private bool _running;
 		private int[] _actionIndicesByScore = Array.Empty<int>();
 		private int[] _bucketIndicesByScore = Array.Empty<int>();
-		private float _lastBucketScoringTime = 0;
-		private float _lastActionScoringTime = 0;
+		private float _lastBucketScoringTime;
+		private float _lastActionScoringTime;
 		private int _currentBucketID = -1;
 		private int _currentActionID = -1;
 		private float _defaultActionScoringRate = 1f;
 		private float _defaultBucketScoringRate = 5f;
-		private UAISelector _bucketSelector = new UAISelector_TopScore();
-		// private GameObject _contextGameobject = null;
-		private IUAIAgent _contextAgent = null;
-		private UAIMemory _memory = null;
-		private UAIBehaviour _behaviour = null;
+		private UAISelector _bucketSelector = UAIDefaults.DefaultBucketSelector;
+		private IUAIAgent _contextAgent;
+		private UAIMemory _memory;
+		private UAIBehaviour _behaviour;
 
 		private UAIBrain()
 		{

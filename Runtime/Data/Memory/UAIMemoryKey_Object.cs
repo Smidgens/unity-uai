@@ -12,11 +12,11 @@ namespace Smidgenomics.Unity.UAI
 		public override bool Validate(ref UAIMemoryValue value)
 		{
 			var baseType = GetSystemType();
-			if (baseType == null || value.Object == null)
+			if (baseType == null || value.objectValue == null)
 			{
 				return false;
 			}
-			return value.Object.GetType().IsSubclassOf(baseType);
+			return value.objectValue.GetType().IsSubclassOf(baseType);
 		}
 
 		[SerializeField] private string _baseType = typeof(GameObject).AssemblyQualifiedName;

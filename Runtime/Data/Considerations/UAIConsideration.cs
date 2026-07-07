@@ -41,7 +41,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using RL = UnityEditorInternal.ReorderableList;
 
 	[CustomEditor(typeof(UAIConsideration), true)]
-	internal sealed class _UtilityAIConsideration : Editor
+	internal sealed class _UAIConsideration : Editor
 	{
 		public override void OnInspectorGUI()
 		{
