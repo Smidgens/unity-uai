@@ -4,11 +4,29 @@
 
 namespace Smidgenomics.Unity.UAI
 {
+	using System;
+
+	[AttributeUsage(AttributeTargets.Field)]
+	public sealed class SOArrayColumn : Attribute
+	{
+		public float width { get; }
+		public bool label { get; }
+
+		public SOArrayColumn(float width = 0, bool label = false)
+		{
+			this.width = width;
+			this.label = label;
+		}
+	}
+}
+
+namespace Smidgenomics.Unity.UAI
+{
 	using UnityEngine;
 	using System.Linq;
 
 	[System.Serializable]
-	internal struct SORef<T> where T : UtilityAISO
+	internal struct SORef<T> where T : UAIScriptableObject
 	{
 		public T item;
 		// saved id in case ref gets lost
@@ -16,7 +34,7 @@ namespace Smidgenomics.Unity.UAI
 	}
 
 	[System.Serializable]
-	internal sealed class SOArray<T> where T : UtilityAISO
+	internal sealed class SOArray<T> where T : UAIScriptableObject
 	{
 		public T[] GetItems()
 		{
@@ -32,24 +50,6 @@ namespace Smidgenomics.Unity.UAI
 
 		[HideInInspector]
 		[SerializeField] internal int _selectedIndex = -1;
-	}
-}
-
-namespace Smidgenomics.Unity.UAI
-{
-	using System;
-
-	[AttributeUsage(AttributeTargets.Field)]
-	public sealed class SOArrayColumn : Attribute
-	{
-		public float width { get; }
-		public bool label { get; }
-
-		public SOArrayColumn(float width = 0, bool label = false)
-		{
-			this.width = width;
-			this.label = label;
-		}
 	}
 }
 
@@ -98,7 +98,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			if (_cachedList == null || _cachedList.serializedProperty.serializedObject != prop.serializedObject)
 			{
 				var indexProp = prop.FindPropertyRelative("_selectedIndex");
-				var arrProp = prop.FindPropertyRelative(nameof(SOArray<UtilityAISO>._array));
+				var arrProp = prop.FindPropertyRelative(nameof(SOArray<UAIScriptableObject>._array));
 
 				_cachedList = new ReorderableList(prop.serializedObject, arrProp);
 				_cachedList.drawHeaderCallback = pos =>
@@ -132,7 +132,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 		{
 			var genericType = fieldInfo.FieldType.GenericTypeArguments[0];
 			
-			var m = UtilityEditorUtils.CreateTypeMenu(genericType, o =>
+			var m = UAIEditorUtils.CreateTypeMenu(genericType, o =>
 			{
 				AddAsset((Type)o, list.serializedProperty);
 			});
@@ -143,7 +143,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private static void AddAsset(Type assetType, SerializedProperty arrayProp)
 		{
 			var mainAsset = arrayProp.serializedObject.targetObject as UnityEngine.Object;
-			var newAsset = ScriptableObject.CreateInstance(assetType) as UtilityAISO;
+			var newAsset = ScriptableObject.CreateInstance(assetType) as UAIScriptableObject;
 			newAsset.hideFlags = HideFlags.HideInHierarchy;
 			newAsset.name = assetType.Name;
 			Undo.RegisterCreatedObjectUndo(newAsset, "Create child asset");
@@ -152,8 +152,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 			arrayProp.InsertArrayElementAtIndex(newIndex);
 
 			var arrItem = arrayProp.GetArrayElementAtIndex(newIndex);
-			var obProp = arrItem.FindPropertyRelative(nameof(SORef<UtilityAISO>.item));
-			var idProp = arrItem.FindPropertyRelative(nameof(SORef<UtilityAISO>.id));
+			var obProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.item));
+			var idProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.id));
 
 			idProp.stringValue = newAsset._id;
 			obProp.objectReferenceValue = newAsset;
@@ -167,9 +167,9 @@ namespace Smidgenomics.Unity.UAI.Editor
 			var i = list.index;
 			var sp = list.serializedProperty;
 			var arrItem = list.serializedProperty.GetArrayElementAtIndex(i);
-			var obProp = arrItem.FindPropertyRelative(nameof(SORef<UtilityAISO>.item));
-			var idProp = arrItem.FindPropertyRelative(nameof(SORef<UtilityAISO>.id));
-			var asset = obProp.objectReferenceValue as UtilityAISO;
+			var obProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.item));
+			var idProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.id));
+			var asset = obProp.objectReferenceValue as UAIScriptableObject;
 			
 			var path = AssetDatabase.GetAssetPath(asset);
 			var mainAsset = AssetDatabase.LoadMainAssetAtPath(path);

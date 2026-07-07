@@ -6,9 +6,11 @@
 namespace Smidgenomics.Unity.UAI
 {
 	using System;
+	using System.Diagnostics;
 	using UnityEngine;
 
 	[AttributeUsage(AttributeTargets.Field)]
+	[Conditional("UNITY_EDITOR")]
 	public sealed class EditConditionToggleAttribute : PropertyAttribute
 	{
 		public string toggleFieldName { get; }

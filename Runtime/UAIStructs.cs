@@ -8,12 +8,11 @@ namespace Smidgenomics.Unity.UAI
 	using System;
 
 	// TODO: Consider if this can be templated or extended (custom context payload)
-	public struct UtilityAIContext
+	public struct UAIAgentContext
 	{
-		// target gameobject
-		public GameObject gameObject;
-		
-		public UtilityAIMemory memory;
+		// root object
+		public IUAIAgent agent;
+		public UAIMemory memory;
 	}
 }
 
@@ -23,10 +22,10 @@ namespace Smidgenomics.Unity.UAI
 	using System;
 	using System.Collections.Generic;
 
-	public ref struct UtilityBrainInitConfig
+	public ref struct UAIBrainInitConfig
 	{
-		public GameObject gameObject;
-		public UtilityAIBehaviour behaviourDefinition;
+		public IUAIAgent agent;
+		public UAIBehaviour behaviourTemplate;
 	}
 }
 
@@ -36,8 +35,9 @@ namespace Smidgenomics.Unity.UAI
 	using System;
 	using System.Collections.Generic;
 
+	// c++ unions are nice...
 	[System.Serializable]
-	public struct UtilityAIMemoryValue
+	public struct UAIMemoryValue
 	{
 		public object Object { get; set; }
 		public int Integer { get; set; }
@@ -55,7 +55,7 @@ namespace Smidgenomics.Unity.UAI
 	using System.Collections.Generic;
 
 	[System.Serializable]
-	internal struct FloatInterval
+	internal struct UAIFloatRange
 	{
 		public float min, max;
 	}

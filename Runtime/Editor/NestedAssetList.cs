@@ -12,7 +12,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using System.Collections.Generic;
 	using UnityEditorInternal;
 
-	internal sealed class NestedAssetList<T> where T : UtilityAISO
+	internal sealed class NestedAssetList<T> where T : UAIScriptableObject
 	{
 		public delegate void ListItemDrawFn(ref Rect rect, SerializedProperty prop, T item);
 
@@ -43,8 +43,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		public NestedAssetList(SerializedProperty prop)
 		{
-			_arrayProp = prop.FindPropertyRelative(nameof(SOArray<UtilityAISO>._array));
-			_addContext = UtilityEditorUtils.CreateTypeMenu(typeof(T), OnAddOption);
+			_arrayProp = prop.FindPropertyRelative(nameof(SOArray<UAIScriptableObject>._array));
+			_addContext = UAIEditorUtils.CreateTypeMenu(typeof(T), OnAddOption);
 			_assetList = new ReorderableList(_arrayProp.serializedObject, _arrayProp);
 			_assetList.onAddDropdownCallback = (r, l) => _addContext.DropDown(r);
 			_assetList.onRemoveCallback = OnListRemove;
@@ -107,7 +107,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private void ShowContextMenu(T asset)
 		{
-			var scriptFile = UtilityEditorUtils.GetObjectMonoscript(asset);
+			var scriptFile = UAIEditorUtils.GetObjectMonoscript(asset);
 			var fileName = scriptFile.name;
 			var m = new GenericMenu();
 			m.AddItem(new GUIContent($"Edit Script"), false, () => AssetDatabase.OpenAsset(scriptFile));
@@ -132,7 +132,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 			if (currentArrItem != null)
 			{
-				currentItem = currentArrItem.FindPropertyRelative(nameof(SORef<UtilityAISO>.item)).objectReferenceValue;
+				currentItem = currentArrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.item)).objectReferenceValue;
 			}
 
 			if (_childInspector && (_childInspector.target != currentItem || !_childInspector.target))
@@ -197,16 +197,16 @@ namespace Smidgenomics.Unity.UAI.Editor
 			var i = list.index;
 			var sp = list.serializedProperty;
 			var arrItem = list.serializedProperty.GetArrayElementAtIndex(i);
-			var obProp = arrItem.FindPropertyRelative(nameof(SORef<UtilityAISO>.item));
-			var idProp = arrItem.FindPropertyRelative(nameof(SORef<UtilityAISO>.id));
-			var asset = obProp.objectReferenceValue as UtilityAISO;
+			var obProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.item));
+			var idProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.id));
+			var asset = obProp.objectReferenceValue as UAIScriptableObject;
 			var path = AssetDatabase.GetAssetPath(asset);
 
 			var mainAsset = AssetDatabase.LoadMainAssetAtPath(path);
 			sp.DeleteArrayElementAtIndex(i);
 			sp.serializedObject.ApplyModifiedProperties();
 
-			List<UtilityAISO> destroyList = new();
+			List<UAIScriptableObject> destroyList = new();
 			destroyList.Add(asset);
 			asset.GatherNestedAssets(destroyList);
 
@@ -217,8 +217,13 @@ namespace Smidgenomics.Unity.UAI.Editor
 		// adds a new SO asset of given type to main asset and inserts it to array
 		private void AddAsset(Type assetType, SerializedProperty arrayProp)
 		{
+			if (assetType == null)
+			{
+				return;
+			}
+			
 			var mainAsset = arrayProp.serializedObject.targetObject as UnityEngine.Object;
-			var newAsset = ScriptableObject.CreateInstance(assetType) as UtilityAISO;
+			var newAsset = ScriptableObject.CreateInstance(assetType) as UAIScriptableObject;
 			newAsset.hideFlags = HideFlags.HideInHierarchy;
 			newAsset.name = assetType.Name;
 			newAsset._label = assetType.Name;
@@ -228,8 +233,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 			arrayProp.InsertArrayElementAtIndex(newIndex);
 
 			var arrItem = arrayProp.GetArrayElementAtIndex(newIndex);
-			var obProp = arrItem.FindPropertyRelative(nameof(SORef<UtilityAISO>.item));
-			var idProp = arrItem.FindPropertyRelative(nameof(SORef<UtilityAISO>.id));
+			var obProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.item));
+			var idProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.id));
 
 			idProp.stringValue = newAsset._id;
 			obProp.objectReferenceValue = newAsset;
@@ -245,7 +250,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			var path = AssetDatabase.GetAssetPath(ms);
 			Texture ico = AssetDatabase.GetCachedIcon(path);
 
-			if (_defaultTypeIcon != null && UtilityEditorUtils.IsDefaultScriptIcon(ico))
+			if (_defaultTypeIcon != null && UAIEditorUtils.IsDefaultScriptIcon(ico))
 			{
 				ico = _defaultTypeIcon.Value;
 			}

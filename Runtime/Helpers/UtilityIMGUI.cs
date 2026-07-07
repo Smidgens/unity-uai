@@ -7,11 +7,20 @@ namespace Smidgenomics.Unity.UAI
 
 	internal static class UtilityIMGUI
 	{
-		
 		public static void DrawRect(in Rect rect, Color color)
 		{
 			var tColor = GUI.color;
 			GUI.color = color;
+			if (WhiteTex?.Value == null)
+			{
+				WhiteTex = new(() =>
+				{
+					var t = new Texture2D(1,1);
+					t.SetPixel(0,0, Color.white);
+					t.Apply();
+					return t;
+				});
+			}
 			GUI.DrawTexture(rect, WhiteTex.Value);
 			GUI.color = tColor;
 		}
@@ -24,12 +33,6 @@ namespace Smidgenomics.Unity.UAI
 			GUI.color = tColor; 
 		}
 
-		private static readonly Lazy<Texture2D> WhiteTex = new(() =>
-		{
-			var t = new Texture2D(1,1);
-			t.SetPixel(0,0, Color.white);
-			t.Apply();
-			return t;
-		});
+		private static Lazy<Texture2D> WhiteTex = null;
 	}
 }

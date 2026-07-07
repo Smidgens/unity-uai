@@ -11,10 +11,11 @@ namespace Smidgenomics.Unity.UAI
 
 	internal static class UAIConstants
 	{
+		// asset context path
 		public const string SO_CREATE_PATH = "Utility AI/";
 		public const string ICON_RES_PATH = "smidgenomics.uai";
 		public const float MIN_COOLDOWN = 0.01f;
-		public const float DEFAULT_ACTION_SR = 1;
+		public const float DEFAULT_ACTION_SR = 1; // sort order in create menus
 		public const float DEFAULT_BUCKET_SR = 5;
 		public static readonly Color COLOR_ACTION_ACTIVE = Color.green;
 		public static readonly Color COLOR_SELECTABLE = Color.white;

@@ -11,8 +11,8 @@ namespace Smidgenomics.Unity.UAI
 	{
 		public static float ScoreConsiderations
 		(
-			in UtilityAIContext context,
-			IEnumerable<IUtilityConsideration> considerations,
+			in UAIAgentContext context,
+			IEnumerable<IUAIConsideration> considerations,
 			out int count
 		)
 		{

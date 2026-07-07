@@ -4,7 +4,7 @@
 
 namespace Smidgenomics.Unity.UAI
 {
-	public enum EUtilityAIActionStatus
+	public enum EUAIActionStatus
 	{
 		Inactive,
 		Active,
@@ -15,7 +15,7 @@ namespace Smidgenomics.Unity.UAI
 
 namespace Smidgenomics.Unity.UAI
 {
-	public enum EUtilityAIRandomMethod
+	public enum EUIRandomMethod
 	{
 		Uniform,
 		Weighted

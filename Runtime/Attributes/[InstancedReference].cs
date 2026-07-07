@@ -10,6 +10,7 @@ namespace Smidgenomics.Unity.UAI
 	[AttributeUsage(AttributeTargets.Field)]
 	public sealed class InstancedReferenceAttribute : PropertyAttribute
 	{
+		public string defaultValueLabel { get; set; } = "(none)";
 	}
 }
 
@@ -82,8 +83,13 @@ namespace Smidgenomics.Unity.UAI
 		private void SelectorDropdown(Rect pos, SerializedProperty prop)
 		{
 			Type currentType = prop.managedReferenceValue?.GetType();
-			
-			var btnLabel = currentType != null ? currentType.Name : "(none)";
+
+			var defLabel = (attribute as InstancedReferenceAttribute).defaultValueLabel;
+
+
+			var btnLabel = currentType != null
+			? currentType.Name
+			: defLabel;
 
 			var dn = currentType?.GetCustomAttribute<DisplayNameAttribute>();
 			if (dn != null)
@@ -96,16 +102,24 @@ namespace Smidgenomics.Unity.UAI
 				return;
 			}
 
-			var m = UtilityEditorUtils.CreateTypeMenu(GetFieldType(), o =>
+			var m = UAIEditorUtils.CreateTypeMenu(GetFieldType(), o =>
 			{
 				var newType = (Type)o;
 				if (newType == currentType)
 				{
 					return;
 				}
+
+				if (o == null)
+				{
+					prop.managedReferenceValue = null;
+					prop.serializedObject.ApplyModifiedProperties();
+					return;
+				}
+				
 				prop.managedReferenceValue = Activator.CreateInstance(newType);
 				prop.serializedObject.ApplyModifiedProperties();
-			});
+			}, defLabel);
 			
 			m.DropDown(pos);
 			
