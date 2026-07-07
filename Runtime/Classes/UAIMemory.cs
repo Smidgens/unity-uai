@@ -8,7 +8,8 @@ namespace Smidgenomics.Unity.UAI
 
 	/**
 	 * Blackboard of sorts
-	 * design TBD
+	 *
+	 * Maybe: Callback delegates for when values change
 	 */
 	public sealed class UAIMemory
 	{
@@ -49,6 +50,27 @@ namespace Smidgenomics.Unity.UAI
 			});
 		}
 
+		public bool TryGetObject(UAIMemoryKey_Object key, out object value) => TryGetValue(key, out value, GetObject);
+		public bool TryGetFloat(UAIMemoryKey_Float key, out float value) => TryGetValue(key, out value, GetFloat);
+		public bool TryGetInt(UAIMemoryKey_Int key, out int value) => TryGetValue(key, out value, GetInt);
+		public bool TryGetBool(UAIMemoryKey_Bool key, out bool value) => TryGetValue(key, out value, GetBool);
+		
+		public bool TryGetObjectAsType<T>(UAIMemoryKey_Object key, out T value) where T : class
+		{
+			value = null;
+			if (!TryGetObject(key, out object obValue))
+			{
+				return false;
+			}
+			value = obValue as T;
+			return value != null;
+		}
+
+		public void ClearAllValues()
+		{
+			_values.Clear();
+		}
+
 		/// <summary>
 		/// Clears given key of value, returns false if no value exists
 		/// </summary>
@@ -61,11 +83,6 @@ namespace Smidgenomics.Unity.UAI
 			_values.Remove(key);
 			return false;
 		}
-
-		public bool TryGetObject(UAIMemoryKey_Object key, out object value) => TryGetValue(key, out value, GetObject);
-		public bool TryGetFloat(UAIMemoryKey_Float key, out float value) => TryGetValue(key, out value, GetFloat);
-		public bool TryGetInt(UAIMemoryKey_Int key, out int value) => TryGetValue(key, out value, GetInt);
-		public bool TryGetBool(UAIMemoryKey_Bool key, out bool value) => TryGetValue(key, out value, GetBool);
 
 		private delegate T ValueGetter<T>(in UAIMemoryValue v);
 		
@@ -94,22 +111,6 @@ namespace Smidgenomics.Unity.UAI
 		private int GetInt(in UAIMemoryValue v) => v.intValue;
 		private object GetObject(in UAIMemoryValue v) => v.objectValue;
 		private float GetFloat(in UAIMemoryValue v) => v.floatValue;
-
-		public bool TryGetObjectAsType<T>(UAIMemoryKey_Object key, out T value) where T : class
-		{
-			value = null;
-			if (!TryGetObject(key, out object obValue))
-			{
-				return false;
-			}
-			value = obValue as T;
-			return value != null;
-		}
-
-		public void ClearAllValues()
-		{
-			_values.Clear();
-		}
 
 		// constructor private for now
 		internal UAIMemory(){}
