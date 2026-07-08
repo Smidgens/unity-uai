@@ -1,7 +1,5 @@
 // smidgens @ github
 
-// ReSharper disable All
-
 #pragma warning disable 0414
 #pragma warning disable 0067
 
@@ -133,12 +131,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 {
 	using UnityEngine;
 	using UnityEditor;
-	using System;
-	using System.Linq;
 	using System.Collections.Generic;
-	using UObject = UnityEngine.Object;
 	using SP = UnityEditor.SerializedProperty;
-	using RL = UnityEditorInternal.ReorderableList;
 
 	[CustomEditor(typeof(UAIAction), true)]
 	internal class _UAIAction : _UAIScriptableObject

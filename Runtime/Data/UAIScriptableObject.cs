@@ -1,9 +1,5 @@
 // smidgens @ github
 
-// ReSharper disable All
-
-using System;
-
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
@@ -41,21 +37,11 @@ namespace Smidgenomics.Unity.UAI
 
 namespace Smidgenomics.Unity.UAI.Editor
 {
-	using UnityEngine;
 	using UnityEditor;
-	using System;
-	using System.Linq;
-	using System.Collections.Generic;
-	using UObject = UnityEngine.Object;
-	using SP = UnityEditor.SerializedProperty;
-	using RL = UnityEditorInternal.ReorderableList;
-	using System.Reflection;
 
-	internal class _UAIScriptableObject : Editor
+	internal abstract class _UAIScriptableObject : Editor
 	{
 		protected override bool ShouldHideOpenButton() => true;
-
-		private List<FieldInfo> _listFields = new();
 	}
 }
 
