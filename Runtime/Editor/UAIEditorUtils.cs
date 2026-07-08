@@ -12,6 +12,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using System.Linq;
 	using System.Collections.Generic;
 	using System.Reflection;
+	using System.ComponentModel;
 
 	/**
 	 *
@@ -109,7 +110,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			if (md != null)
 			{
 				// category = md.category;
-				dname = md.displayName;
+				dname = md.DisplayName;
 			}
 			if (dname == null)
 			{

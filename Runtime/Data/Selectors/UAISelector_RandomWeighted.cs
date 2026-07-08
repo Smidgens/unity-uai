@@ -4,6 +4,7 @@ namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 	using System;
+	using System.ComponentModel;
 
 	[DisplayName("Random Weighted")]
 	public sealed class UAISelector_RandomWeighted : UAISelector

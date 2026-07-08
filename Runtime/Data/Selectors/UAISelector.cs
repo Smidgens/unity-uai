@@ -2,13 +2,15 @@
 
 // ReSharper disable All
 
-using System.Reflection;
+
 
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 	using System;
 	using System.Collections.Generic;
+	using System.Reflection;
+	using System.ComponentModel;
 
 	[System.Serializable]
 	public abstract class UAISelector
@@ -24,7 +26,7 @@ namespace Smidgenomics.Unity.UAI
 		public string GetDisplayName()
 		{
 			var dn = GetType().GetCustomAttribute<DisplayNameAttribute>();
-			return dn != null ? dn.displayName : GetType().Name;
+			return dn != null ? dn.DisplayName : GetType().Name;
 		}
 		
 		protected int GetBestIndex(int count, Func<int, float> scoreFn)

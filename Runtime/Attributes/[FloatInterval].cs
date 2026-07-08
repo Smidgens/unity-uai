@@ -3,9 +3,11 @@
 namespace Smidgenomics.Unity.UAI
 {
 	using System;
+	using System.Diagnostics;
 	using UnityEngine;
 
 	[AttributeUsage(AttributeTargets.Field)]
+	[Conditional("UNITY_EDITOR")]
 	internal sealed class FloatIntervalAttribute : PropertyAttribute
 	{
 		public float Min { get; }

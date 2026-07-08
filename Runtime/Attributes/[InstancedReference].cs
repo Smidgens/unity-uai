@@ -5,10 +5,12 @@
 namespace Smidgenomics.Unity.UAI
 {
 	using System;
+	using System.Diagnostics;
 	using UnityEngine;
 
 	[AttributeUsage(AttributeTargets.Field)]
-	public sealed class InstancedReferenceAttribute : PropertyAttribute
+	[Conditional("UNITY_EDITOR")]
+	internal sealed class InstancedReferenceAttribute : PropertyAttribute
 	{
 		public string defaultValueLabel { get; set; } = "(none)";
 	}
@@ -24,6 +26,7 @@ namespace Smidgenomics.Unity.UAI
 	using System.Linq;
 	using System.Reflection;
 	using Editor;
+	using System.ComponentModel;
 	using UObject = UnityEngine.Object;
 	using SP = UnityEditor.SerializedProperty;
 
@@ -94,7 +97,7 @@ namespace Smidgenomics.Unity.UAI
 			var dn = currentType?.GetCustomAttribute<DisplayNameAttribute>();
 			if (dn != null)
 			{
-				btnLabel = dn.displayName;
+				btnLabel = dn.DisplayName;
 			}
 
 			if (!GUI.Button(pos, btnLabel, EditorStyles.popup))

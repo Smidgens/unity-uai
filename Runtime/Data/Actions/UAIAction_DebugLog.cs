@@ -6,6 +6,7 @@ namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 	using System.Collections;
+	using System.ComponentModel;
 
 	[DisplayName("Debug Log")]
 	internal sealed class UAIAction_DebugLog : UAIAction

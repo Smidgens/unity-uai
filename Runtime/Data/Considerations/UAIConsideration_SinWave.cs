@@ -4,6 +4,7 @@ namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 	using System;
+	using System.ComponentModel;
 
 	[DisplayName("Sin Wave")]
 	internal sealed class UAIConsideration_SinWave : UAIConsideration

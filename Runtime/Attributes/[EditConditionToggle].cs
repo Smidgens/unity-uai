@@ -11,7 +11,7 @@ namespace Smidgenomics.Unity.UAI
 
 	[AttributeUsage(AttributeTargets.Field)]
 	[Conditional("UNITY_EDITOR")]
-	public sealed class EditConditionToggleAttribute : PropertyAttribute
+	internal sealed class EditConditionToggleAttribute : PropertyAttribute
 	{
 		public string toggleFieldName { get; }
 

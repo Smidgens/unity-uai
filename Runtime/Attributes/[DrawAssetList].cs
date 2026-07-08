@@ -12,7 +12,7 @@ namespace Smidgenomics.Unity.UAI
 
 	[Conditional("UNITY_EDITOR")]
 	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-	public sealed class DrawAssetListAttribute : Attribute
+	internal sealed class DrawAssetListAttribute : Attribute
 	{
 		public string fieldName { get; }
 

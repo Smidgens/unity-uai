@@ -2,6 +2,7 @@
 
 namespace Smidgenomics.Unity.UAI
 {
+	using System.ComponentModel;
 	using UnityEngine;
 
 	[DisplayName("Has Memory Key")]

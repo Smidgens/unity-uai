@@ -6,6 +6,7 @@ namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 	using System;
+	using System.ComponentModel;
 
 	[DisplayName("Object Distance")]
 	internal sealed class UAIConsideration_ObjectDistance : UAIConsideration

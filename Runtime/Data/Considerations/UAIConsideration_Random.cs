@@ -3,6 +3,7 @@
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
+	using System.ComponentModel;
 
 	[DisplayName("Random")]
 	internal sealed class UAIConsideration_Random : UAIConsideration

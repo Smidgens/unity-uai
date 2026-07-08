@@ -6,6 +6,7 @@ namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 	using System.Collections;
+	using System.ComponentModel;
 	using UnityEngine.AI;
 
 	[DisplayName("Wander (Navigation)")]
