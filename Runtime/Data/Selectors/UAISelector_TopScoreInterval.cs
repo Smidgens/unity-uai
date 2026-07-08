@@ -33,7 +33,7 @@ namespace Smidgenomics.Unity.UAI
 		
 		public override string GetDebugIconPath()
 		{
-			return UAIConstants.ICON_RES_PATH + "/{top_interval}";
+			return UAIConstants.RES_PATH + "/{top_interval}";
 		}
 
 		[Range(0, 1)]

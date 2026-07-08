@@ -3,11 +3,13 @@
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
-	using System;
 	using System.ComponentModel;
 
-	[DisplayName("Sin Wave")]
-	internal sealed class UAIConsideration_SinWave : UAIConsideration
+	/// <summary>
+	/// Returns score that bounces between 0 and 1 over time
+	/// </summary>
+	[DisplayName("Ping Pong")]
+	internal sealed class UAIConsideration_PingPong : UAIConsideration
 	{
 		public override float GetScore(in UAIAgentContext Context)
 		{

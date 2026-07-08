@@ -7,7 +7,7 @@ namespace Smidgenomics.Unity.UAI
 	using UnityEngine;
 	using System;
 
-	[CreateAssetMenu(menuName = UAIConstants.SO_CREATE_PATH + "Consideration Set")]
+	[CreateAssetMenu(menuName = UAIConstants.SO_CREATE_PATH + "Consideration List")]
 	public sealed class UAIConsiderationList : ScriptableObject
 	{
 		[HideInInspector]

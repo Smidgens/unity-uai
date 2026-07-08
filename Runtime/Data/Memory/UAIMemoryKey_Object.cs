@@ -5,31 +5,24 @@ namespace Smidgenomics.Unity.UAI
 	using UnityEngine;
 	using System;
 
-	// TODO: More robust inspector
+	// TODO: More robust inspector for type info
 	[CreateAssetMenu(menuName = UAIConstants.SO_CREATE_PATH + "Memory/Object")]
-	public sealed class UAIMemoryKey_Object : UAIMemoryKey
+	public sealed class UAIMemoryKey_Object : UAIMemoryKey<object>
 	{
 		public override bool Validate(ref UAIMemoryValue value)
 		{
-			var baseType = GetSystemType();
-			if (baseType == null)
+			if (_constraint == null)
 			{
-				return false;
+				return true;
 			}
-			return value.objectValue == null || value.objectValue.GetType().IsSubclassOf(baseType);
+			return _constraint.Validate(value);
 		}
 
+		[SerializeReference, InstancedReference]
+		private UAIConstraint_Object _constraint = new UAIConstraint_Object_BaseType();
+		
+		[HideInInspector]
 		[SerializeField] private string _baseType = typeof(GameObject).AssemblyQualifiedName;
 
-		private (string, Type) _cachedType;
-
-		private Type GetSystemType()
-		{
-			if (_baseType != _cachedType.Item1)
-			{
-				_cachedType = (_baseType, Type.GetType(_baseType));
-			}
-			return _cachedType.Item2;
-		}
 	}
 }

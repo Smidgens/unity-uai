@@ -3,9 +3,10 @@
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
-	using System;
 
-	//[CreateAssetMenu]
+	/// <summary>
+	/// Holds reference to assets used by debug overlays and gizmos
+	/// </summary>
 	internal sealed class UAIDebugResources : ScriptableObject
 	{
 		public static UAIDebugResources Instance
@@ -14,7 +15,7 @@ namespace Smidgenomics.Unity.UAI
 			{
 				if (!_instance)
 				{
-					_instance = Resources.Load<UAIDebugResources>(UAIConstants.ICON_RES_PATH + "/{debug}");
+					_instance = Resources.Load<UAIDebugResources>(UAIConstants.RES_PATH + "/{debug}");
 				}
 				return _instance;
 			}

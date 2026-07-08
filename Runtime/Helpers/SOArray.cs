@@ -48,7 +48,5 @@ namespace Smidgenomics.Unity.UAI
 
 		[SerializeField] internal SORef<T>[] _array = { };
 
-		[HideInInspector]
-		[SerializeField] internal int _selectedIndex = -1;
 	}
 }

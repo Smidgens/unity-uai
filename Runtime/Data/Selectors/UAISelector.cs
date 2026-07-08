@@ -20,7 +20,7 @@ namespace Smidgenomics.Unity.UAI
 
 		public virtual string GetDebugIconPath()
 		{
-			return UAIConstants.ICON_RES_PATH + "/{random}";
+			return UAIConstants.RES_PATH + "/{random}";
 		}
 
 		public string GetDisplayName()

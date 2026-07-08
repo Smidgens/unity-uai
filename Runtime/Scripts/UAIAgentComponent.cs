@@ -4,7 +4,7 @@ namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 
-	[AddComponentMenu("Smidgenomics/Utility AI/UAI Agent")]
+	[AddComponentMenu(UAIConstants.AC_PATH + "UAI Agent")]
 	[DisallowMultipleComponent]
 	public sealed class UAIAgentComponent : MonoBehaviour, IUAIAgent
 	{

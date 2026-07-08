@@ -24,7 +24,7 @@ namespace Smidgenomics.Unity.UAI
 		
 		public override string GetDebugIconPath()
 		{
-			return UAIConstants.ICON_RES_PATH + "/{random}";
+			return UAIConstants.RES_PATH + "/{random}";
 		}
 	}
 }

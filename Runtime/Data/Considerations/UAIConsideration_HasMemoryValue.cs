@@ -5,8 +5,8 @@ namespace Smidgenomics.Unity.UAI
 	using System.ComponentModel;
 	using UnityEngine;
 
-	[DisplayName("Has Memory Key")]
-	internal sealed class UAIConsideration_HasMemoryKey : UAIConsideration
+	[DisplayName("Has Memory Value")]
+	internal sealed class UAIConsideration_HasMemoryValue : UAIConsideration
 	{
 		public override float GetScore(in UAIAgentContext context)
 		{
