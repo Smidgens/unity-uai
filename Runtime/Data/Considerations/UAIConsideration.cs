@@ -11,6 +11,9 @@ namespace Smidgenomics.Unity.UAI
 	{
 		public abstract float GetScore(in UAIAgentContext context);
 
+		/// <summary>
+		/// Applies inversion flag and curve to score
+		/// </summary>
 		protected float EvalScore(float score)
 		{
 			score = Mathf.Clamp01(_curve.Evaluate(score));
@@ -70,11 +73,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 				var prop = serializedObject.FindProperty(f.Name);
 				_props.Add(prop);
 			}
-		}
-
-		private void OnDisable()
-		{
-			
 		}
 
 	}

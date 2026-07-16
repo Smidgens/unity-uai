@@ -22,6 +22,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 		
 		public bool DrawTypeIcon { get; set; }
 
+		public int Count => _assetList.count;
+
 		public string DefaultTypeIconGUID
 		{
 			get => _defaultIconGuidGuid;

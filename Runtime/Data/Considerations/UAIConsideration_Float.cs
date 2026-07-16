@@ -5,7 +5,7 @@ namespace Smidgenomics.Unity.UAI
 	using UnityEngine;
 	using System.ComponentModel;
 	
-	[DisplayName("Float")]
+	[DisplayName("Utility/Float")]
 	internal sealed class UAIConsideration_Float : UAIConsideration
 	{
 		public override float GetScore(in UAIAgentContext Context) => _value;

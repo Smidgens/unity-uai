@@ -8,7 +8,7 @@ namespace Smidgenomics.Unity.UAI
 	/// <summary>
 	/// Returns score that bounces between 0 and 1 over time
 	/// </summary>
-	[DisplayName("Ping Pong")]
+	[DisplayName("Utility/Ping Pong")]
 	internal sealed class UAIConsideration_PingPong : UAIConsideration
 	{
 		public override float GetScore(in UAIAgentContext Context)

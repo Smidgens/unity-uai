@@ -3,7 +3,6 @@
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
-	using System;
 
 	// TODO: More robust inspector for type info
 	[CreateAssetMenu(menuName = UAIConstants.SO_CREATE_PATH + "Memory/Object")]
@@ -15,14 +14,16 @@ namespace Smidgenomics.Unity.UAI
 			{
 				return true;
 			}
-			return _constraint.Validate(value);
+			return _constraint.Validate(value.objectRef);
+		}
+
+		public override string StringifyValue(in UAIMemoryValue value)
+		{
+			return value.objectRef == null ? "<null>" : value.objectRef.ToString();
 		}
 
 		[SerializeReference, InstancedReference]
 		private UAIConstraint_Object _constraint = new UAIConstraint_Object_BaseType();
-		
-		[HideInInspector]
-		[SerializeField] private string _baseType = typeof(GameObject).AssemblyQualifiedName;
 
 	}
 }

@@ -11,7 +11,7 @@ namespace Smidgenomics.Unity.UAI
 	using System.Reflection;
 	using System.Collections.Generic;
 
-	public static partial class FieldInfo_
+	internal static partial class FieldInfo_
 	{
 		// can field be drawn by inspector
 		public static bool IsInspectorField(this FieldInfo f)
@@ -30,7 +30,7 @@ namespace Smidgenomics.Unity.UAI
 		}
 	}
 
-	public static partial class Type_
+	internal static partial class Type_
 	{
 
 		/// <summary>

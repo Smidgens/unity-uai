@@ -8,7 +8,7 @@ namespace Smidgenomics.Unity.UAI
 	using System.Collections;
 	using System.ComponentModel;
 
-	[DisplayName("Debug Log")]
+	[DisplayName("Debug/Debug Log")]
 	internal sealed class UAIAction_DebugLog : UAIAction
 	{
 		public override IEnumerator ActivateAction()

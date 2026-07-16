@@ -36,6 +36,8 @@ namespace Smidgenomics.Unity.UAI
 	[System.Serializable]
 	internal sealed class SOArray<T> where T : UAIScriptableObject
 	{
+		public int Count => _array.Length;
+		
 		public T[] GetItems()
 		{
 			return _array.Select(x => x.item).Where(x => x != null).ToArray();

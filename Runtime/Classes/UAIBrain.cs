@@ -17,6 +17,8 @@ namespace Smidgenomics.Unity.UAI
 	{
 		public IUAIAction CurrentTemplate => GetCurrentActionTemplate();
 
+		public UAIMemory GetMemory() => _memory;
+
 		public UAIAgentContext GetContext() => _context;
 
 		// 

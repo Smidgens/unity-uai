@@ -1,7 +1,5 @@
 // smidgens @ github
 
-// ReSharper disable All
-
 using System.Collections.Generic;
 using System.Linq;
 
@@ -20,7 +18,7 @@ namespace Smidgenomics.Unity.UAI
 	{
 		public static UAIManager GetInstance()
 		{
-			if (_instance == null && !_closing)
+			if (!_instance && !_closing)
 			{
 				_instance = (new GameObject(nameof(UAIManager))).AddComponent<UAIManager>();
 				_instance.gameObject.hideFlags = HideFlags.HideInHierarchy;
@@ -120,7 +118,7 @@ namespace Smidgenomics.Unity.UAI
 			return GetInstance().StartCoroutine(StartRoutine(routine, onDone));
 		}
 
-		private static UAIManager _instance = null;
+		internal static UAIManager _instance;
 
 		private void Update()
 		{

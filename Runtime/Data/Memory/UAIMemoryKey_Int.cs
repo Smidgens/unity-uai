@@ -19,6 +19,11 @@ namespace Smidgenomics.Unity.UAI
 			return true;
 		}
 
+		public override string StringifyValue(in UAIMemoryValue value)
+		{
+			return value.intValue.ToString();
+		}
+
 		[SerializeReference, InstancedReference]
 		private UAIConstraint_Int _constraint;
 	}

@@ -21,7 +21,7 @@ namespace Smidgenomics.Unity.UAI
 		/// <summary>
 		/// Runs exactly once after service instance is created
 		/// </summary>
-		public virtual void InitializeService()
+		public virtual void InitService()
 		{
 			// override me
 		}

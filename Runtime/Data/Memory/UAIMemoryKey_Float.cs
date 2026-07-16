@@ -2,6 +2,7 @@
 
 namespace Smidgenomics.Unity.UAI
 {
+	using System.Globalization;
 	using UnityEngine;
 
 	/// <summary>
@@ -19,6 +20,11 @@ namespace Smidgenomics.Unity.UAI
 			return true;
 		}
 
+		public override string StringifyValue(in UAIMemoryValue value)
+		{
+			return value.floatValue.ToString(CultureInfo.InvariantCulture);
+		}
+		
 		[SerializeReference, InstancedReference]
 		private UAIConstraint_Float _constraint;
 	

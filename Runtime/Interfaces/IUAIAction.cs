@@ -9,7 +9,7 @@ namespace Smidgenomics.Unity.UAI
 	using IEnumerator = System.Collections.IEnumerator;
 
 	/// <summary>
-	/// 
+	/// Action API
 	/// </summary>
 	public interface IUAIAction
 	{
@@ -26,12 +26,12 @@ namespace Smidgenomics.Unity.UAI
 		public float GetActionCooldown();
 
 		// reset execution state to allow action re-use
-		public void ResetAction();
+		internal void ResetActionInternal();
 
 		// execution status
 		public EUAIActionStatus GetActionStatus();
 
-		// main logic execution logic
+		// main logic execution routine
 		public IEnumerator ActivateAction();
 
 		// begin cancellation

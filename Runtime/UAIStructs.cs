@@ -38,7 +38,7 @@ namespace Smidgenomics.Unity.UAI
 	[StructLayout(LayoutKind.Explicit)]
 	public struct UAIMemoryValue
 	{
-		[FieldOffset(0)] public object objectValue;
+		[FieldOffset(0)] public object objectRef;
 		[FieldOffset(0)] public int intValue;
 		[FieldOffset(0)] public bool boolValue;
 		[FieldOffset(0)] public float floatValue;

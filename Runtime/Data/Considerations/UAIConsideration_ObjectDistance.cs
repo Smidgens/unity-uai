@@ -8,7 +8,7 @@ namespace Smidgenomics.Unity.UAI
 	using System;
 	using System.ComponentModel;
 
-	[DisplayName("Object Distance")]
+	[DisplayName("Scene/Object Distance")]
 	internal sealed class UAIConsideration_ObjectDistance : UAIConsideration
 	{
 		public override float GetScore(in UAIAgentContext context)

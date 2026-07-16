@@ -9,7 +9,7 @@ namespace Smidgenomics.Unity.UAI
 	using System.ComponentModel;
 	using UnityEngine.AI;
 
-	[DisplayName("Wander (Navigation)")]
+	[DisplayName("Navigation/Wander")]
 	internal sealed class UAIAction_WanderOnNav : UAIAction
 	{
 		public override IEnumerator ActivateAction()
@@ -36,13 +36,13 @@ namespace Smidgenomics.Unity.UAI
 			var navAgent = go.GetComponent<NavMeshAgent>();
 			navAgent.SetDestination(navAgent.transform.position);
 
-			yield return new WaitForSeconds(3);
+			yield return new WaitForSeconds(_deactivationDuration);
 			yield return null;
 		}
 
 		public override float GetActionCooldown()
 		{
-			return GetActionStatus() == EUAIActionStatus.Cancelled ? 10f : _cooldown;
+			return GetActionStatus() == EUAIActionStatus.Cancelled ? _cancelledCooldown : _cooldown;
 		}
 
 		public override bool CanCancelAction()
@@ -51,7 +51,9 @@ namespace Smidgenomics.Unity.UAI
 		}
 
 		[SerializeField, Min(0.01f)] internal float _cooldown = 1f;
+		[SerializeField, Min(0.01f)] internal float _cancelledCooldown = 10f;
 		[SerializeField, Min(0.01f)] internal float _interruptibleAfter = 1f;
+		[SerializeField, Min(0f)] internal float _deactivationDuration;
 		
 		[Header("Navigation")]
 		[SerializeField, Min(0.5f)] private float _wanderRadius = 10;

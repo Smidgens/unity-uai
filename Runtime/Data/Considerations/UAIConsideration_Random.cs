@@ -5,7 +5,7 @@ namespace Smidgenomics.Unity.UAI
 	using UnityEngine;
 	using System.ComponentModel;
 
-	[DisplayName("Random")]
+	[DisplayName("Utility/Random")]
 	internal sealed class UAIConsideration_Random : UAIConsideration
 	{
 		public override float GetScore(in UAIAgentContext Context)

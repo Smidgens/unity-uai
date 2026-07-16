@@ -7,11 +7,18 @@ namespace Smidgenomics.Unity.UAI
 
 	public abstract class UAIMemoryKey : ScriptableObject
 	{
+		public string Label => _label;
+		
 		public abstract Type MemoryType { get; }
 
 		public virtual bool Validate(ref UAIMemoryValue value)
 		{
 			return true;
+		}
+
+		public virtual string StringifyValue(in UAIMemoryValue value)
+		{
+			return "";
 		}
 
 		[SerializeField] internal string _label = "Key";

@@ -7,6 +7,11 @@ namespace Smidgenomics.Unity.UAI
 	using System.Collections.Generic;
 	using UnityEngine;
 
+	/// <summary>
+	/// Utility calculations
+	///
+	/// For reference, see book "Mathematic for Game AI"
+	/// </summary>
 	internal static class UAIMath
 	{
 		public static float ScoreConsiderations
@@ -47,10 +52,10 @@ namespace Smidgenomics.Unity.UAI
 			return RenormalizeAggregateScore(count, combinedScore);
 		}
 
-		/**
-		 * Dave Mark's "magic" utility formula to renormalize aggregate score
-		 * (Bring small value from multiplying scores together closer to 1)
-		 */
+		/// <summary>
+		/// Dave Mark's "magic" utility formula to renormalize aggregate score
+		/// (Bring small value from multiplying scores together closer to 1)
+		/// </summary>
 		public static float RenormalizeAggregateScore(int ConsiderationCount, float AggregateScore)
 		{
 			if(ConsiderationCount <= 0){ return 0; }

@@ -11,39 +11,61 @@ namespace Smidgenomics.Unity.UAI
 	using IEnumerator = System.Collections.IEnumerator;
 
 	// action base
-	public abstract class UAIAction : 
-		UAINode, 
-		IUAIAction
+	public abstract class UAIAction :  UAINode, IUAIAction
 	{
-		
+		/// <summary>
+		/// Activation status in UAI brain
+		/// </summary>
 		public EUAIActionStatus GetActionStatus()
 		{
 			return _status;
 		}
-
+		
+		/// <summary>
+		/// Returns wait time before action can be considered again after deactivation
+		/// </summary>
 		public virtual float GetActionCooldown()
 		{
 			return 1;
 		}
 
+		/// <summary>
+		/// Run the entirety of an action's logic
+		/// </summary>
 		public virtual IEnumerator ActivateAction()
 		{
 			return null;
 		}
-
+		
+		/// <summary>
+		/// Deactivation routine, will always run to completion
+		/// </summary>
 		public virtual IEnumerator DeactivateAction()
 		{
 			return null;
 		}
-
+		
+		/// <summary>
+		/// When true, action can be cancelled if another is selected
+		/// </summary>
 		public virtual bool CanCancelAction()
 		{
 			return true;
 		}
 
-		public void ResetAction()
+		/// <summary>
+		/// Opportunity for action to reset its state manually for when action is re-used
+		/// </summary>
+		public virtual void ResetAction()
 		{
 			
+		}
+
+		// called by UAI brain when action is reused
+		void IUAIAction.ResetActionInternal()
+		{
+			ResetAction();
+			// TODO: other base class cleanup
 		}
 
 		// 
@@ -53,6 +75,12 @@ namespace Smidgenomics.Unity.UAI
 			{
 				return 0f;
 			}
+
+			if (_considerations.Count == 0)
+			{
+				return _weight * UAIDefaults.DEFAULT_ACTION_SCORE;
+			}
+	
 			var score = UAIMath.ScoreConsiderations(context, _considerations.GetItems(), out int Count);
 			return _weight * score;
 		}
@@ -87,16 +115,19 @@ namespace Smidgenomics.Unity.UAI
 			return count;
 		}
 		
-		internal Action onActionFinished = null;
+		internal Action onActionFinished;
 
 		[Min(0f)]
 		[HideInInspector]
 		[SerializeField] internal float _weight = 1f;
-
-		[SerializeField] private bool _sustainAction = false;
+		
+		/// <summary>
+		/// When enabled, the action will not be re-scored while it's active (it sustains the same score)
+		/// </summary>
+		[SerializeField] private bool _sustainAction;
 
 		[EditConditionHidden(nameof(_sustainAction))]
-		[SerializeField] private AnimationCurve _sustainCurve = AnimationCurve.Linear(0, 1, 1, 1);
+		[SerializeField] internal AnimationCurve _sustainCurve = AnimationCurve.Linear(0, 1, 1, 1);
 
 		[HideInInspector]
 		[SerializeField] internal SOArray<UAIConsideration> _considerations = new();
@@ -110,7 +141,8 @@ namespace Smidgenomics.Unity.UAI
 			onActionFinished = null;
 			ev?.Invoke();
 		}
-
+		
+		// editor/inspector convenience
 		internal override void GatherNestedAssets(List<UAIScriptableObject> assets)
 		{
 			foreach (var c in _considerations.GetArr())
@@ -155,6 +187,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 			EditorGUILayout.Space();
 			_considerationView.OnListGUI();
 			serializedObject.ApplyModifiedProperties();
+
+			DrawInfoMessages();
 		}
 
 		private NestedAssetList<UAIConsideration> _considerationView = null;
@@ -176,6 +210,15 @@ namespace Smidgenomics.Unity.UAI.Editor
 		{
 			_considerationView?.DisposeGUI();
 		}
+
+		private void DrawInfoMessages()
+		{
+			if (_considerationView != null && _considerationView.Count == 0)
+			{
+				EditorGUILayout.HelpBox($"Action has no considerations, score will default to {UAIDefaults.DEFAULT_ACTION_SCORE}", MessageType.Info);
+			}
+		}
+
 
 		private static NestedAssetList<UAIConsideration> CreateConsiderationList(SerializedProperty listProp)
 		{

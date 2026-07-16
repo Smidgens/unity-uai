@@ -15,7 +15,7 @@ namespace Smidgenomics.Unity.UAI
 
 namespace Smidgenomics.Unity.UAI
 {
-	public enum EUIRandomMethod
+	public enum EUAIRandomMethod
 	{
 		Uniform,
 		Weighted

@@ -5,17 +5,24 @@
 namespace Smidgenomics.Unity.UAI
 {
 	using System.Collections.Generic;
+	using System;
 
-	/**
-	 * Blackboard of sorts
-	 *
-	 * Maybe: Callback delegates for when values change
-	 */
+	/// <summary>
+	/// Blackboard of sorts
+	/// </summary>
 	public sealed class UAIMemory
 	{
 		public bool HasValue(UAIMemoryKey key)
 		{
 			return _values.ContainsKey(key);
+		}
+
+		public void ForEachMemoryValue(ActionRefRO<UAIMemoryKey, UAIMemoryValue> fn)
+		{
+			foreach (var kvp in _values)
+			{
+				fn.Invoke(kvp.Key, kvp.Value);
+			}
 		}
 
 		public bool TrySetFloat(UAIMemoryKey_Float key, float value)
@@ -30,7 +37,7 @@ namespace Smidgenomics.Unity.UAI
 		{
 			return TrySetValue(key, new UAIMemoryValue
 			{
-				objectValue = value
+				objectRef = value
 			});
 		}
 
@@ -109,7 +116,7 @@ namespace Smidgenomics.Unity.UAI
 
 		private bool GetBool(in UAIMemoryValue v) => v.boolValue;
 		private int GetInt(in UAIMemoryValue v) => v.intValue;
-		private object GetObject(in UAIMemoryValue v) => v.objectValue;
+		private object GetObject(in UAIMemoryValue v) => v.objectRef;
 		private float GetFloat(in UAIMemoryValue v) => v.floatValue;
 
 		// constructor private for now

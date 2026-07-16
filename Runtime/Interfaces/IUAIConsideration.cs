@@ -6,10 +6,10 @@ namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
 	using System;
-	
-	/**
-	 * 
-	 */
+
+	/// <summary>
+	/// 
+	/// </summary>
 	public interface IUAIConsideration
 	{
 		public bool Enabled { get;  }

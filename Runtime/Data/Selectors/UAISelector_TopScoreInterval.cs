@@ -24,7 +24,7 @@ namespace Smidgenomics.Unity.UAI
 			{
 				return topIndex;
 			}
-			if (_randomMethod == EUIRandomMethod.Weighted)
+			if (_randomMethod == EUAIRandomMethod.Weighted)
 			{
 				return indices[UAIMath.GetRandomArrayIndexWeighted<float>(scores)];
 			}
@@ -39,6 +39,6 @@ namespace Smidgenomics.Unity.UAI
 		[Range(0, 1)]
 		[SerializeField] private float _interval = 0.25f;
 
-		[SerializeField] private EUIRandomMethod _randomMethod = EUIRandomMethod.Uniform;
+		[SerializeField] private EUAIRandomMethod _randomMethod = EUAIRandomMethod.Uniform;
 	}
 }
