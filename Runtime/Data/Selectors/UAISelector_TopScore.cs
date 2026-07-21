@@ -14,9 +14,9 @@ namespace Smidgenomics.Unity.UAI
 			return GetBestIndex(count, scoreFn);
 		}
 
-		public override string GetDebugIconPath()
+		public override Rect GetDebugIconCoords()
 		{
-			return UAIConstants.RES_PATH + "/{top}";
+			return new Rect(0.125f * 1, 0.125f * 7, 0.125f, 0.125f);
 		}
 	}
 }

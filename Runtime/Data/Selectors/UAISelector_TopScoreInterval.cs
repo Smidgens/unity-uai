@@ -30,10 +30,10 @@ namespace Smidgenomics.Unity.UAI
 			}
 			return indices[UnityEngine.Random.Range(0, indices.Count - 1)];
 		}
-		
-		public override string GetDebugIconPath()
+
+		public override Rect GetDebugIconCoords()
 		{
-			return UAIConstants.RES_PATH + "/{top_interval}";
+			return new Rect(0.125f * 2, 0.125f * 7, 0.125f, 0.125f);
 		}
 
 		[Range(0, 1)]

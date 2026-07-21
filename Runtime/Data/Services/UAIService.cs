@@ -14,9 +14,9 @@ namespace Smidgenomics.Unity.UAI
 	/// design TBD
 	///
 	/// Notes:
-	/// - Services instances are always reused
+	/// - Service instances are always reused
 	/// </summary>
-	public abstract class UAIService : UAINode
+	public abstract class UAIService : UAINode, IUAIService
 	{
 		/// <summary>
 		/// Runs exactly once after service instance is created

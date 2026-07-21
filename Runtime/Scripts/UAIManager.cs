@@ -16,6 +16,8 @@ namespace Smidgenomics.Unity.UAI
 	[DefaultExecutionOrder(-2)]
 	internal sealed class UAIManager : MonoBehaviour
 	{
+		public int BrainCount => _brains.Length;
+
 		public static UAIManager GetInstance()
 		{
 			if (!_instance && !_closing)
@@ -25,9 +27,6 @@ namespace Smidgenomics.Unity.UAI
 			}
 			return _instance;
 		}
-		
-
-		public event Action onUpdate = null;
 
 		internal void RegisterBrain(UAIBrain aiBrain)
 		{
@@ -71,21 +70,10 @@ namespace Smidgenomics.Unity.UAI
 			public UAIBrain AIBrain;
 		}
 
-		private static bool _closing = false;
+		private static bool _closing;
 
 		private TrackedBrain[] _brains = Array.Empty<TrackedBrain>();
-		
-		private Dictionary<float, WaitForSeconds> _cachedDelays = new Dictionary<float, WaitForSeconds>();
-		
-		public WaitForSeconds GetDelayInstance(float delay)
-		{
-			if (!_cachedDelays.TryGetValue(delay, out WaitForSeconds value))
-			{
-				_cachedDelays[delay] = new WaitForSeconds(delay);
-			}
-			return value;
-		}
-		
+	
 		private int FindBrainIndex(UAIBrain aiBrain)
 		{
 			for (int i = 0; i < _brains.Length; i++)
@@ -120,9 +108,20 @@ namespace Smidgenomics.Unity.UAI
 
 		internal static UAIManager _instance;
 
-		private void Update()
+		private void OnEnable()
 		{
-			onUpdate?.Invoke();
+			Application.quitting -= OnQuit;
+			Application.quitting += OnQuit;
+		}
+
+		private void OnDisable()
+		{
+			Application.quitting -= OnQuit;
+		}
+
+		private void OnQuit()
+		{
+			
 		}
 
 		private static Routine StartRoutine(Routine routine, Action action)

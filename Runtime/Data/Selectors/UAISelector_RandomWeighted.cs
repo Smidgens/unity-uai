@@ -21,10 +21,15 @@ namespace Smidgenomics.Unity.UAI
 			CollectMinScores(count, topIndex, minScore, scoreFn, out var indices, out var scores);
 			return indices[UAIMath.GetRandomArrayIndexWeighted<float>(scores)];
 		}
-		
-		public override string GetDebugIconPath()
+
+		public override string GetDebugIconGUID()
 		{
-			return UAIConstants.RES_PATH + "/{random}";
+			return "a1446d554144a4944b389210a34ff6b9";
+		}
+
+		public override Rect GetDebugIconCoords()
+		{
+			return new Rect(0.125f * 0, 0.125f * 7, 0.125f, 0.125f);
 		}
 	}
 }

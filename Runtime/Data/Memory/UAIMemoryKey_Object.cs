@@ -19,7 +19,16 @@ namespace Smidgenomics.Unity.UAI
 
 		public override string StringifyValue(in UAIMemoryValue value)
 		{
-			return value.objectRef == null ? "<null>" : value.objectRef.ToString();
+			if (value.objectRef == null)
+			{
+				return "<null>";
+			}
+
+			if (value.objectRef is UnityEngine.Object)
+			{
+				return ((UnityEngine.Object)value.objectRef).name;
+			}
+			return value.objectRef.ToString();
 		}
 
 		[SerializeReference, InstancedReference]

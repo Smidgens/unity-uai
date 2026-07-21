@@ -15,6 +15,16 @@ namespace Smidgenomics.Unity.UAI
 
 	public sealed class UAIBrain
 	{
+		public bool IsRunning()
+		{
+			return _running;
+		}
+
+		public bool IsDisposed()
+		{
+			return _disposed;
+		}
+		
 		public IUAIAction CurrentTemplate => GetCurrentActionTemplate();
 
 		public UAIMemory GetMemory() => _memory;
@@ -83,6 +93,12 @@ namespace Smidgenomics.Unity.UAI
 
 		public void StartLogic()
 		{
+			if (IsDisposed())
+			{
+				// NOTE: May not be necessary, technically we -could- reuse the instance
+				throw new UAIException("Trying to start logic on a disposed brain");
+			}
+			
 			if (_running)
 			{
 				return;
@@ -131,6 +147,7 @@ namespace Smidgenomics.Unity.UAI
 		/// </summary>
 		public void Dispose()
 		{
+			_disposed = true;
 			// GC cleanup if necessary
 		}
 
@@ -194,6 +211,7 @@ namespace Smidgenomics.Unity.UAI
 		private IUAIAgent _contextAgent;
 		private UAIMemory _memory;
 		private UAIBehaviour _behaviour;
+		private bool _disposed;
 
 		private UAIBrain()
 		{
@@ -214,7 +232,7 @@ namespace Smidgenomics.Unity.UAI
 			public bool deactivating;
 			public bool cancellable;
 
-			public bool OnCooldown()
+			public readonly bool OnCooldown()
 			{
 				if (instance != null)
 				{

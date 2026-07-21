@@ -12,6 +12,8 @@ namespace Smidgenomics.Unity.UAI
 	/// </summary>
 	public sealed class UAIMemory
 	{
+		public int ValueCount => _values.Count;
+		
 		public bool HasValue(UAIMemoryKey key)
 		{
 			return _values.ContainsKey(key);

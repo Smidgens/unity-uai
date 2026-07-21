@@ -18,9 +18,17 @@ namespace Smidgenomics.Unity.UAI
 		// Assumes sorted values in descending order
 		public abstract int SelectIndex(int count, Func<int, float> scoreFn);
 
-		public virtual string GetDebugIconPath()
+		public virtual string GetDebugIconGUID()
 		{
-			return UAIConstants.RES_PATH + "/{random}";
+			return "a1446d554144a4944b389210a34ff6b9";
+		}
+
+		/// <summary>
+		/// Can be used for atlas icons
+		/// </summary>
+		public virtual Rect GetDebugIconCoords()
+		{
+			return new Rect(0, 0.125f * 7, 0.125f, 0.125f);
 		}
 
 		public string GetDisplayName()
