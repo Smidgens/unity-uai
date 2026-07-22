@@ -6,14 +6,29 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using UnityEditor;
 
 	// debug styles for editor windows
-	internal sealed class UAIDebugStyles
+	internal sealed class UAIEditorStyles
 	{
+		public static Color GetIconColor()
+		{
+			return EditorGUIUtility.isProSkin
+			? Color.white
+			: Color.black;
+		}
+		
+		public static Color GetIconColorInverse()
+		{
+			return !EditorGUIUtility.isProSkin
+			? Color.white
+			: Color.black;
+		}
+		
 		public GUIStyle ToolbarButtonStyle { get; }
+		public GUIStyle HeaderLabelStyle { get; }
 		public GUIStyle ScoreLabelStyle { get; }
 		public GUIStyle BucketLabelStyle { get; }
 		public GUIStyle ActionLabelStyle { get; }
 		public GUIStyle CooldownLabelStyle { get; }
-		public GUIStyle ListButtonLabelStyle { get; }
+		public GUIStyle ListButtonStyle { get; }
 		public GUIStyle LegendLabelStyle { get; }
 		public float ToolbarHeight { get; }
 		public float ActionLabelHeight { get; }
@@ -21,35 +36,37 @@ namespace Smidgenomics.Unity.UAI.Editor
 		public float ListButtonHeight { get; }
 		public Vector2 ScoreLabelSize { get; }
 		public Vector2 CooldownLabelSize { get; }
-		
 		public float LegendLabelHeight { get; }
-		
 		public float ScrollbarWidth { get; }
+		public float HeaderLabelHeight { get; }
 
-		public static UAIDebugStyles CreateInstance()
+		public static UAIEditorStyles CreateInstance()
 		{
-			var s = new UAIDebugStyles();
+			var s = new UAIEditorStyles();
 			// note: might want to init styles here to avoid constructor exceptions
 			return s;
 		}
 
-		private UAIDebugStyles()
+		private UAIEditorStyles()
 		{
-
 			ToolbarButtonStyle = new GUIStyle(EditorStyles.toolbarButton)
 			{
 				padding = new RectOffset(4,4,4,4),
+				stretchWidth = false,
+				border = new RectOffset(),
+				margin = new RectOffset()
 			};
 
-			ToolbarButtonStyle.stretchWidth = false;
+			HeaderLabelStyle = new GUIStyle(EditorStyles.miniLabel)
+			{
+				// fontSize = (int)(GUI.skin.label.fontSize * 1f),
+				// alignment = TextAnchor.MiddleLeft,
+				padding = new RectOffset(3,3,3,3),
+			};
 
-			ToolbarButtonStyle.border = new RectOffset();
-			ToolbarButtonStyle.margin = new RectOffset();
-			
-			
 			BucketLabelStyle = new GUIStyle(GUI.skin.label)
 			{
-				fontSize = (int)(GUI.skin.label.fontSize * 1),
+				fontSize = (int)(GUI.skin.label.fontSize * 1f),
 				alignment = TextAnchor.MiddleLeft,
 				padding = new RectOffset(2,2,4,4),
 			};
@@ -73,9 +90,10 @@ namespace Smidgenomics.Unity.UAI.Editor
 				fontSize = (int)(GUI.skin.label.fontSize * 0.8),
 			};
 
-			ListButtonLabelStyle = new GUIStyle(GUI.skin.label)
+			ListButtonStyle = new GUIStyle(EditorStyles.toolbarButton)
 			{
-				padding = new RectOffset(2,2,3,3),
+				padding = new RectOffset(5,5,3,3),
+				alignment = TextAnchor.MiddleLeft
 			};
 
 			LegendLabelStyle = new GUIStyle(GUI.skin.label)
@@ -84,14 +102,17 @@ namespace Smidgenomics.Unity.UAI.Editor
 				fontSize = (int)(GUI.skin.label.fontSize * 0.9),
 			};
 
-			ToolbarHeight = EditorStyles.toolbarButton.CalcSize(new GUIContent("a")).y;
-			ActionLabelHeight = ActionLabelStyle.CalcHeight(new GUIContent("a"), 200);
-			BucketLabelHeight = BucketLabelStyle.CalcHeight(new GUIContent("a"), 200);
+			var dummyLabel = new GUIContent("a");
+
+			ToolbarHeight = EditorStyles.toolbarButton.CalcSize(dummyLabel).y;
+			ActionLabelHeight = ActionLabelStyle.CalcHeight(dummyLabel, 200);
+			BucketLabelHeight = BucketLabelStyle.CalcHeight(dummyLabel, 200);
 			ScoreLabelSize = ScoreLabelStyle.CalcSize(new GUIContent("00.0000000"));
 			CooldownLabelSize = CooldownLabelStyle.CalcSize(new GUIContent("0000000"));
-			ListButtonHeight = ListButtonLabelStyle.CalcHeight(new GUIContent("a"), 100);
-			LegendLabelHeight = LegendLabelStyle.CalcHeight(new GUIContent("a"), 100);
+			ListButtonHeight = ListButtonStyle.CalcHeight(dummyLabel, 100);
+			LegendLabelHeight = LegendLabelStyle.CalcHeight(dummyLabel, 100);
 			ScrollbarWidth = GUI.skin.verticalScrollbar.CalcSize(GUIContent.none).x;
+			HeaderLabelHeight = HeaderLabelStyle.CalcHeight(dummyLabel, 100);
 		}
 
 	}

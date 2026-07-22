@@ -2,6 +2,20 @@
 
 // ReSharper disable All
 
+
+
+namespace Smidgenomics.Unity.UAI
+{
+	using System.Collections.Generic;
+
+	public struct UAIScoringContext
+	{
+		public IEnumerable<IUAIConsideration> considerations;
+		public int scoreIndex;
+		public float[] scores;
+	}
+}
+
 namespace Smidgenomics.Unity.UAI
 {
 	using System.Collections.Generic;
@@ -18,7 +32,8 @@ namespace Smidgenomics.Unity.UAI
 		(
 			in UAIAgentContext context,
 			IEnumerable<IUAIConsideration> considerations,
-			out int count
+			out int count,
+			in UAIScoringContext scoreContext
 		)
 		{
 			// we can't use array length if items may be null
@@ -27,16 +42,22 @@ namespace Smidgenomics.Unity.UAI
 			// consideration score
 			float combinedScore = 1;
 
+			int scoreIndex = scoreContext.scoreIndex - 1;
 			foreach(var consideration in considerations)
 			{
+				scoreIndex++;
+
 				// we really throttled someone's terrier if we allowed a null item in here
 				if(consideration == null || !consideration.Enabled)
 				{
+					scoreContext.scores[scoreIndex] = -1;
 					continue;
 				}
 				count++;
-		
+
 				float score = consideration.GetScore(context);
+
+				scoreContext.scores[scoreIndex] = score;
 
 				// we don't need to continue, although we might want to know other consideration scores
 				// for debugging purposes even if they wouldn't change the total result

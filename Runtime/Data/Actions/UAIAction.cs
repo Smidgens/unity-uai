@@ -1,5 +1,6 @@
 // smidgens @ github
 
+// ReSharper disable VirtualMemberNeverOverridden.Global
 #pragma warning disable 0414
 #pragma warning disable 0067
 
@@ -61,28 +62,17 @@ namespace Smidgenomics.Unity.UAI
 			
 		}
 
+		public virtual bool IsReusable()
+		{
+			return true;
+			// return GetType().GetMethod(nameof(ResetAction))?.DeclaringType != typeof(UAIAction);
+		}
+
 		// called by UAI brain when action is reused
 		void IUAIAction.ResetActionInternal()
 		{
 			ResetAction();
 			// TODO: other base class cleanup
-		}
-
-		// 
-		public float GetTotalScore(in UAIAgentContext context)
-		{
-			if (Mathf.Approximately(_weight, 0f))
-			{
-				return 0f;
-			}
-
-			if (_considerations.Count == 0)
-			{
-				return _weight * UAIDefaults.DEFAULT_ACTION_SCORE;
-			}
-	
-			var score = UAIMath.ScoreConsiderations(context, _considerations.GetItems(), out int Count);
-			return _weight * score;
 		}
 
 		protected void FinishAction()
@@ -102,19 +92,6 @@ namespace Smidgenomics.Unity.UAI
 			return instance;
 		}
 
-		internal int GetEnabledConsiderationCount()
-		{
-			int count = 0;
-			foreach(var c in _considerations.GetArr())
-			{
-				if (c.item && c.item._enabled)
-				{
-					count++;
-				}
-			}
-			return count;
-		}
-		
 		internal Action onActionFinished;
 
 		[Min(0f)]

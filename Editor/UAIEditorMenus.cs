@@ -8,10 +8,10 @@ namespace Smidgenomics.Unity.UAI.Editor
 	internal static class UAIEditorMenus
 	{
 		// debug window
-		[MenuItem(UAIConstants.DEBUG_MENU)]
+		[MenuItem(UAIConstants.WIN_PATH_DEBUG)]
 		public static void OpenDebugWindow()
 		{
-			UAIDebugWindow.Open();
+			UAIWindow_Monitor.Open();
 		}
 	}
 }

@@ -7,7 +7,7 @@ namespace Smidgenomics.Unity.UAI
 
 	[AddComponentMenu("")]
 	[DisallowMultipleComponent]
-	[Obsolete("Debug info has been moved to UAI debug window: " + UAIConstants.DEBUG_MENU)]
+	[Obsolete("Debug info has been moved to UAI debug window: " + UAIConstants.WIN_PATH_DEBUG)]
 	internal sealed class UAIDebugOverlay : MonoBehaviour
 	{
 		[SerializeField] private int _depth;
