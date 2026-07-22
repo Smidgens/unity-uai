@@ -241,7 +241,12 @@ namespace Smidgenomics.Unity.UAI
 
 			public readonly bool OnCooldown()
 			{
-				if (instance != null)
+				// if (instance != null)
+				// {
+				// 	return false;
+				// }
+
+				if (activationRoutine != null || deactivating)
 				{
 					return false;
 				}
@@ -339,7 +344,7 @@ namespace Smidgenomics.Unity.UAI
 					totalConsiderations += actionRecord.considerations.Length;
 
 					actionRecord.reusable = actionRecord.template.IsReusable();
-					
+
 					actions.Add(actionRecord);
 					actionIndices.Add(actionIndices.Count);
 	
@@ -518,7 +523,11 @@ namespace Smidgenomics.Unity.UAI
 
 			int scoreIndex = bucket.actionIndex + bucket.bucketSO._actionSelector.SelectIndex(bucket.actionCount, i =>
 			{
-				return _actionRecords[_actionIndicesByScore[aIndex + i]].score;
+				ref readonly ActionRecord action = ref _actionRecords[_actionIndicesByScore[aIndex + i]];
+
+				return action.OnCooldown() ? 0f : action.score;
+
+				// return _actionRecords[_actionIndicesByScore[aIndex + i]].score;
 			});
 			return scoreIndex > -1 ? _actionIndicesByScore[scoreIndex] : -1;
 		}
@@ -583,7 +592,7 @@ namespace Smidgenomics.Unity.UAI
 			{
 				record.instance._status = status;
 			}
-			
+
 			record.deactivating = true;
 			UAIManager.RunCoroutine(DeactivateActionRoutine(actionID), onDone);
 		}
