@@ -10,6 +10,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using UnityEngine;
 	using UnityEditor;
 	using System.Collections.Generic;
+	using System.ComponentModel;
+	using System.Reflection;
 	using UnityEditorInternal;
 
 	internal sealed class NestedAssetList<T> where T : UAIScriptableObject
@@ -216,6 +218,35 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		}
 
+		private static string GetDefaultAssetName(Type type)
+		{
+			if (type == null)
+			{
+				return "";
+			}
+
+			var displayName = type.GetCustomAttribute<DisplayNameAttribute>();
+
+			if (displayName != null)
+			{
+				var startIndex = displayName.DisplayName.LastIndexOf("/");
+				if (startIndex < 0)
+				{
+					startIndex = 0;
+				}
+				else
+				{
+					startIndex++;
+				}
+
+				return displayName.DisplayName.Substring(startIndex);
+			}
+			
+			
+
+			return type.Name;
+		} 
+
 		// adds a new SO asset of given type to main asset and inserts it to array
 		private void AddAsset(Type assetType, SerializedProperty arrayProp)
 		{
@@ -227,8 +258,11 @@ namespace Smidgenomics.Unity.UAI.Editor
 			var mainAsset = arrayProp.serializedObject.targetObject as UnityEngine.Object;
 			var newAsset = ScriptableObject.CreateInstance(assetType) as UAIScriptableObject;
 			newAsset.hideFlags = HideFlags.HideInHierarchy;
-			newAsset.name = assetType.Name;
-			newAsset._label = assetType.Name;
+
+			var assetName = GetDefaultAssetName(assetType);
+			
+			newAsset.name = assetName;
+			newAsset._label = assetName;
 			Undo.RegisterCreatedObjectUndo(newAsset, "Create child asset");
 			AssetDatabase.AddObjectToAsset(newAsset, mainAsset);
 			var newIndex = arrayProp.arraySize;
