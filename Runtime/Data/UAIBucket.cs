@@ -2,7 +2,6 @@
 
 // resharper disable all
 
-
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
@@ -18,7 +17,7 @@ namespace Smidgenomics.Unity.UAI
 	[DrawAssetList("_considerations")]
 	public sealed class UAIBucket : UAIScriptableObject
 	{
-		public string BucketName => _label;
+		public string BucketName => !string.IsNullOrEmpty(_label) ? _label : name;
 
 		[Multiline(2)]
 		[SerializeField] internal string _comment = "";

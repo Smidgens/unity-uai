@@ -289,6 +289,7 @@ namespace Smidgenomics.Unity.UAI
 				BucketRecord bucketRecord = new BucketRecord();
 				bucketRecord.ID = buckets.Count;
 				bucketRecord.name = bucketSO.BucketName;
+				
 				bucketRecord.actionIndex = actions.Count;
 				bucketRecord.bucketSO = bucketSO;
 
@@ -325,21 +326,23 @@ namespace Smidgenomics.Unity.UAI
 						continue;
 					}
 					aCount++;
-					var record = new ActionRecord();
-					record.considerations = action._considerations.GetItems()
+					var actionRecord = new ActionRecord();
+					actionRecord.considerations = action._considerations.GetItems()
 					.Where(c => c && c.Enabled)
 					.ToArray();
 
-					record.actionID = actions.Count;
-					record.template = action.InstantiateAction();
-					record.bucketID = bucketRecord.ID;
-					actions.Add(record);
+					actionRecord.actionID = actions.Count;
+					actionRecord.template = action.InstantiateAction();
+					actionRecord.bucketID = bucketRecord.ID;
+
+					actionRecord.considerationIndex = totalConsiderations;
+					totalConsiderations += actionRecord.considerations.Length;
+
+					actionRecord.reusable = actionRecord.template.IsReusable();
+					
+					actions.Add(actionRecord);
 					actionIndices.Add(actionIndices.Count);
-					record.considerationIndex = totalConsiderations;
-					totalConsiderations += record.template._considerations.Count;
-
-					record.reusable = record.template.IsReusable();
-
+	
 				}
 				bucketRecord.actionCount = aCount;
 				buckets.Add(bucketRecord);
@@ -385,10 +388,11 @@ namespace Smidgenomics.Unity.UAI
 
 		internal string GetCurrentBucketLabel()
 		{
-			if (!IsValidActionID(_currentBucketID))
+			if (!IsValidBucketID(_currentBucketID))
 			{
 				return "";
 			}
+
 			return _bucketRecords[_currentBucketID].name;
 		}
 
@@ -439,6 +443,8 @@ namespace Smidgenomics.Unity.UAI
 		{
 			if (IsValidActionID(_currentActionID) && _actionRecords[_currentActionID].reusable)
 			{
+				
+				
 				(_actionRecords[_currentActionID].instance as IUAIAction).ResetActionInternal();
 			}
 			
@@ -630,10 +636,10 @@ namespace Smidgenomics.Unity.UAI
 			}
 
 			ref ActionRecord action = ref _actionRecords[_currentActionID];
-
+			
 			for (int i = 0; i < action.considerationCount; i++)
 			{
-				var consideration = action.template._considerations.GetItemAt(i);
+				var consideration = action.considerations[i];
 				var score = _debugContext.considerationScores[action.considerationIndex + i];
 
 				fn.Invoke(new ConsiderationInfo
@@ -697,6 +703,11 @@ namespace Smidgenomics.Unity.UAI
 		private void DisposeActionInstance(int actionID)
 		{
 			ref ActionRecord record = ref _actionRecords[actionID];
+
+			if (record.instance && record.reusable)
+			{
+				return;
+			}
 
 			if (record.instance != null)
 			{

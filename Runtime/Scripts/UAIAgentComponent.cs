@@ -4,6 +4,7 @@ namespace Smidgenomics.Unity.UAI
 {
 	using System;
 	using UnityEngine;
+	using UnityEngine.Serialization;
 
 	[AddComponentMenu(UAIConstants.AC_PATH + "UAI Agent")]
 	[DisallowMultipleComponent]
@@ -11,8 +12,8 @@ namespace Smidgenomics.Unity.UAI
 	{
 		public UAIMemory agentMemory => _brain?.GetMemory();
 
-		[SerializeField] private UAIBehaviour _template;
-		[SerializeField] internal bool _debugActivity;
+		[FormerlySerializedAs("_template")]
+		[SerializeField] private UAIBehaviour _behaviour;
 
 		private UAIBrain _brain;
 
@@ -21,7 +22,7 @@ namespace Smidgenomics.Unity.UAI
 			_brain = UAIFactory.CreateBrain(new UAIBrainInitConfig
 			{
 				agent = this,
-				behaviourTemplate = _template
+				behaviourTemplate = _behaviour
 			});
 
 		}

@@ -460,7 +460,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 			var bScoreRect = bucketRow.SliceRight(_editorStyles.ScoreLabelSize.x);
 
-			EditorGUI.LabelField(bucketRow, br.bucketSO._label, _editorStyles.BucketLabelStyle);
+			EditorGUI.LabelField(bucketRow, br.bucketSO.BucketName, _editorStyles.BucketLabelStyle);
 			EditorGUI.LabelField(bScoreRect, FormatScoreLabel(br.score), _editorStyles.ScoreLabelStyle);
 
 			if (_currentBrain.GetCurrentBucketID() == br.ID)
@@ -475,7 +475,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 					var scoreRect = actionRow.SliceRight(_editorStyles.ScoreLabelSize.x);
 					var cooldownRect = actionRow.SliceRight(_editorStyles.CooldownLabelSize.x);
 
-					EditorGUI.LabelField(actionRow, ar.template._label, _editorStyles.ActionLabelStyle);
+					EditorGUI.LabelField(actionRow, ar.template.Name, _editorStyles.ActionLabelStyle);
 					EditorGUI.LabelField(scoreRect, FormatScoreLabel(ar.score), _editorStyles.ScoreLabelStyle);
 					
 					var stateIcon = GetActionIcon(ar, _currentBrain);
