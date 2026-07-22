@@ -13,6 +13,7 @@ namespace Smidgenomics.Unity.UAI
 	{
 		public override IEnumerator ActivateAction()
 		{
+			Debug.Log(_debugText);
 			yield return new WaitForSeconds(_duration);
 			yield return null;
 		}
