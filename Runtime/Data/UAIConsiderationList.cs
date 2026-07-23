@@ -70,7 +70,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private static NestedAssetList<UAIConsideration> CreateConsiderationList(SerializedProperty listProp)
 		{
 			NestedAssetList<UAIConsideration> view = new (listProp);
-			view.DefaultTypeIconGUID = UAIEditorConstants.DEFAULT_CONSIDERATION_ICON_GUID;
+			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_CONSIDERATION_ICON_GUID;
 			view.DrawTypeIcon = true;
 			view.onDrawListItem = (ref Rect rect, SerializedProperty prop, UAIConsideration so) =>
 			{

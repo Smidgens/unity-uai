@@ -13,13 +13,16 @@ namespace Smidgenomics.Unity.UAI
 	{
 		public override IEnumerator ActivateAction()
 		{
-			Debug.Log(_debugText);
 			yield return new WaitForSeconds(_duration);
 			yield return null;
 		}
 
 		public override float GetActionCooldown()
 		{
+			if (GetActionStatus() == EUAIActionStatus.Cancelled)
+			{
+				return _cancelCooldown;
+			}
 			return _cooldown;
 		}
 
@@ -31,5 +34,8 @@ namespace Smidgenomics.Unity.UAI
 		
 		[Min(UAIConstants.MIN_COOLDOWN)]
 		[SerializeField] internal float _cooldown = 1f;
+		
+		[Min(UAIConstants.MIN_COOLDOWN)]
+		[SerializeField] internal float _cancelCooldown = 1f;
 	}
 }

@@ -94,7 +94,7 @@ namespace Smidgenomics.Unity.UAI
 		}
 
 		private delegate T ValueGetter<T>(in UAIMemoryValue v);
-		
+
 		private bool TrySetValue(UAIMemoryKey key, UAIMemoryValue value)
 		{
 			if (!key.Validate(ref value))
@@ -104,7 +104,7 @@ namespace Smidgenomics.Unity.UAI
 			_values[key] = value;
 			return true;
 		}
-		
+
 		private bool TryGetValue<T>(UAIMemoryKey key, out T value, ValueGetter<T> getter)
 		{
 			value = default;

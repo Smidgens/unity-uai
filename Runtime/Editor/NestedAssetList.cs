@@ -101,9 +101,16 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private string _defaultIconGuidGuid = null;
 		private Lazy<Texture> _defaultTypeIcon = null;
 
+		private GUIContent _contextIcon;
+
 		private void DrawContextButton(Rect rect, T asset)
 		{
-			if (GUI.Button(rect, new GUIContent(UAIEditorConstants.ContextIcon), EditorStyles.iconButton))
+			if (_contextIcon == null)
+			{
+				_contextIcon = new GUIContent(EditorGUIUtility.FindTexture("_Menu"));
+			}
+			
+			if (GUI.Button(rect, _contextIcon, EditorStyles.iconButton))
 			{
 				ShowContextMenu(asset);
 			}

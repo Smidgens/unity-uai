@@ -101,7 +101,7 @@ namespace Smidgenomics.Unity.UAI
 		/// <summary>
 		/// When enabled, the action will not be re-scored while it's active (it sustains the same score)
 		/// </summary>
-		[SerializeField] private bool _sustainAction;
+		[SerializeField] internal bool _sustainAction;
 
 		[EditConditionHidden(nameof(_sustainAction))]
 		[SerializeField] internal AnimationCurve _sustainCurve = AnimationCurve.Linear(0, 1, 1, 1);
@@ -118,7 +118,7 @@ namespace Smidgenomics.Unity.UAI
 			onActionFinished = null;
 			ev?.Invoke();
 		}
-		
+
 		// editor/inspector convenience
 		internal override void GatherNestedAssets(List<UAIScriptableObject> assets)
 		{
@@ -200,7 +200,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private static NestedAssetList<UAIConsideration> CreateConsiderationList(SerializedProperty listProp)
 		{
 			NestedAssetList<UAIConsideration> view = new (listProp);
-			view.DefaultTypeIconGUID = UAIEditorConstants.DEFAULT_CONSIDERATION_ICON_GUID;
+			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_CONSIDERATION_ICON_GUID;
 			view.DrawTypeIcon = true;
 			view.onDrawListItem = (ref Rect rect, SerializedProperty prop, UAIConsideration so) =>
 			{

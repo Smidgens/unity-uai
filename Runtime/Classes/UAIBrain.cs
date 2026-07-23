@@ -15,6 +15,8 @@ namespace Smidgenomics.Unity.UAI
 
 	public sealed class UAIBrain
 	{
+		public const int NO_ID = -1;
+
 		public bool IsRunning()
 		{
 			return _running;
@@ -24,26 +26,28 @@ namespace Smidgenomics.Unity.UAI
 		{
 			return _disposed;
 		}
-		
-		public IUAIAction CurrentTemplate => GetCurrentActionTemplate();
+
+		public IUAIAction CurrentActionTemplate => GetCurrentActionTemplate();
+
+		public float LastBucketScoringTime => _lastBucketScoringTime;
+		public float LastActionScoringTime => _lastActionScoringTime;
 
 		public UAIMemory GetMemory() => _memory;
 
 		public UAIAgentContext GetContext() => _context;
 
 		// 
-		public int GetCurrentActionID() => _currentActionID;
+		public int CurrentActionID => _currentActionID;
 
 		// 
-		public int GetCurrentBucketID() => _currentBucketID;
+		public int CurrentBucketID => _currentBucketID;
 
 		public int GetCurrentBucketActionCount()
 		{
-			return IsValidBucketID(_currentBucketID) ? _bucketRecords[_currentBucketID].actionCount : 0;
+			return IsValidBucketID(_currentBucketID)
+			? _bucketRecords[_currentBucketID].actionCount
+			: 0;
 		}
-
-		// 
-		internal ref readonly ActionRecord GetCurrentAction() => ref _actionRecords[_currentActionID];
 	
 		// 
 		public int GetBucketCount() => _bucketRecords.Length;
@@ -52,26 +56,26 @@ namespace Smidgenomics.Unity.UAI
 		{
 			return IsValidBucketID(_currentBucketID)
 			? _bucketRecords[_currentBucketID].bucketScoringRate
-			: _defaultBucketScoringRate;
+			: UAIDefaults.DEFAULT_BUCKET_SCORING_RATE;
 		}
 
 		public float GetCurrentActionScoringRate()
 		{
 			return IsValidBucketID(_currentBucketID)
 			? _bucketRecords[_currentBucketID].actionScoringRate
-			: _defaultActionScoringRate;
+			: UAIDefaults.DEFAULT_ACTION_SCORING_RATE;
 		}
 
 		// 
 		public float GetBucketScoringProgress()
 		{
-			return Mathf.Clamp01((Time.time - _lastBucketScoringTime) / GetCurrentBucketScoringRate());
+			return Mathf.Clamp01((GetCurrentTime() - _lastBucketScoringTime) / GetCurrentBucketScoringRate());
 		}
 
 		// 
 		public float GetActionScoringProgress()
 		{
-			return Mathf.Clamp01((Time.time - _lastActionScoringTime) / GetCurrentActionScoringRate());
+			return Mathf.Clamp01((GetCurrentTime() - _lastActionScoringTime) / GetCurrentActionScoringRate());
 		}
 
 		public int GetCurrentActionBucketID()
@@ -98,7 +102,7 @@ namespace Smidgenomics.Unity.UAI
 				// NOTE: May not be necessary, technically we -could- reuse the instance
 				throw new UAIException("Trying to start logic on a disposed brain");
 			}
-			
+
 			if (_running)
 			{
 				return;
@@ -154,6 +158,11 @@ namespace Smidgenomics.Unity.UAI
 		public bool IsValidActionID(int actionID) => _actionRecords.IsValidIndex(actionID);
 
 		public bool IsValidBucketID(int bucketID) => _bucketRecords.IsValidIndex(bucketID);
+		
+		internal ref readonly ActionRecord GetCurrentAction()
+		{
+			return ref _actionRecords[_currentActionID];
+		}
 
 		internal static UAIBrain CreateBrain(in UAIBrainInitConfig config)
 		{
@@ -197,21 +206,19 @@ namespace Smidgenomics.Unity.UAI
 		internal ActionRecord[] _actionRecords = Array.Empty<ActionRecord>();
 		private BucketRecord[] _bucketRecords =  Array.Empty<BucketRecord>();
 		private UAIManager _cachedManager;
-		private bool _deactivatingAction;
-		private bool _running;
 		private int[] _actionIndicesByScore = Array.Empty<int>();
 		private int[] _bucketIndicesByScore = Array.Empty<int>();
 		private float _lastBucketScoringTime;
 		private float _lastActionScoringTime;
-		private int _currentBucketID = -1;
-		private int _currentActionID = -1;
-		private float _defaultActionScoringRate = 1f;
-		private float _defaultBucketScoringRate = 5f;
+		private int _currentBucketID = NO_ID; // index to bucket array
+		private int _currentActionID = NO_ID; // index to action array
 		private UAISelector _bucketSelector = UAIDefaults.DefaultBucketSelector;
 		private IUAIAgent _contextAgent;
 		private UAIMemory _memory;
 		private UAIBehaviour _behaviour;
 		private bool _disposed;
+		private bool _deactivatingAction;
+		private bool _running;
 
 		internal UAIBrainDebugContext _debugContext;
 
@@ -235,24 +242,45 @@ namespace Smidgenomics.Unity.UAI
 			public bool cancelled;
 			public bool deactivating;
 			public bool cancellable;
+			public float lastActivation;
 			public int considerationIndex;
 			public int considerationCount; // last evaluated considerations
 			public bool reusable;
 
 			public readonly bool OnCooldown()
 			{
-				// if (instance != null)
-				// {
-				// 	return false;
-				// }
-
 				if (activationRoutine != null || deactivating)
 				{
 					return false;
 				}
 				return cooldownEnd > Time.time;
 			}
-			public EUAIActionStatus Status => instance != null ? instance.GetActionStatus() : EUAIActionStatus.Inactive;
+
+			public EUAIActionStatus Status => instance != null
+			? instance.GetActionStatus()
+			: EUAIActionStatus.Inactive;
+
+			public readonly float SustainedScore()
+			{
+				// var active = activationRoutine != null || deactivating;
+				if (template._sustainAction)
+				{
+					var t = template._sustainCurve.Evaluate(ActiveDuration());
+					return Mathf.Max(0f, t * score);
+				}
+				return score;
+			}
+
+			public readonly float ActiveDuration()
+			{
+				// if (activationRoutine != null || deactivating)
+				// {
+				// 	return Time.time - lastActivation;
+				// }
+				// return 0f;
+
+				return Time.time - lastActivation;
+			}
 		}
 
 		internal struct BucketRecord
@@ -264,6 +292,7 @@ namespace Smidgenomics.Unity.UAI
 			public int actionCount;
 			public float actionScoringRate;
 			public float bucketScoringRate;
+			public float lastActivation;
 			public float weight;
 			public UAISelector actionSelector; 
 			public UAIBucket bucketSO;
@@ -376,7 +405,7 @@ namespace Smidgenomics.Unity.UAI
 		// 
 		private void ScoreBuckets()
 		{
-			_lastBucketScoringTime = Time.time;
+			_lastBucketScoringTime = GetCurrentTime();
 			for (int i = 0; i < _bucketRecords.Length; i++)
 			{
 				int bucketID = i;
@@ -404,7 +433,7 @@ namespace Smidgenomics.Unity.UAI
 		// 
 		private void ScoreActions()
 		{
-			_lastActionScoringTime = Time.time;
+			_lastActionScoringTime = GetCurrentTime();
 
 			if (!IsValidBucketID(_currentBucketID))
 			{
@@ -424,24 +453,44 @@ namespace Smidgenomics.Unity.UAI
 				ref ActionRecord record = ref _actionRecords[actionID];
 
 				scoreCtx.scoreIndex = record.considerationIndex;
-
-				// record.score = record.template.GetTotalScore(_context, scoreCtx, out int count);
-
-				record.score = GetActionScore(record, _context, scoreCtx, out int count);
-				
 				record.cancellable = record.instance != null ? record.instance.CanCancelAction() : false;
-				record.considerationCount = count;
+
+				bool shouldScore = true;
+
+				if (actionID == _currentActionID && record.template._sustainAction)
+				{
+					shouldScore = false;
+				}
+
+				if (shouldScore)
+				{
+					record.score = GetActionScore(record, _context, scoreCtx, out int count);
+					record.considerationCount = count;
+				}
 			}
 
 			UAIHelpers.SortIndicesByWeight(ref _actionIndicesByScore, bucket.actionIndex, bucket.actionCount, i =>
 			{
-				return _actionRecords[i].score;
+				// return _actionRecords[i].score;
+				return _actionRecords[i].SustainedScore();
 			}, false);
 		}
 
 		private void SetNextBucket()
 		{
+			var lastBucket = _currentBucketID;
 			_currentBucketID = SelectBucket();
+
+			if (IsValidBucketID(_currentBucketID) && lastBucket != _currentBucketID)
+			{
+				_bucketRecords[_currentBucketID].lastActivation = GetCurrentTime();
+			}
+			
+		}
+
+		private float GetCurrentTime()
+		{
+			return Time.time;
 		}
 
 		private void ResetAction()
@@ -480,7 +529,7 @@ namespace Smidgenomics.Unity.UAI
 			var nextIndex = SelectAction();
 
 			// already running best action
-			if (nextIndex >= 0 && nextIndex == _currentActionID)
+			if (IsValidActionID(nextIndex) && nextIndex == _currentActionID)
 			{
 				return;
 			}
@@ -515,21 +564,20 @@ namespace Smidgenomics.Unity.UAI
 		{
 			if (!IsValidBucketID(_currentBucketID))
 			{
-				return -1;
+				return NO_ID;
 			}
 
 			ref readonly BucketRecord bucket = ref _bucketRecords[_currentBucketID];
 			int aIndex = bucket.actionIndex;
 
-			int scoreIndex = bucket.actionIndex + bucket.bucketSO._actionSelector.SelectIndex(bucket.actionCount, i =>
+			var selector = bucket.bucketSO._actionSelector;
+
+			int scoreIndex = bucket.actionIndex + selector.SelectIndex(bucket.actionCount, i =>
 			{
 				ref readonly ActionRecord action = ref _actionRecords[_actionIndicesByScore[aIndex + i]];
-
-				return action.OnCooldown() ? 0f : action.score;
-
-				// return _actionRecords[_actionIndicesByScore[aIndex + i]].score;
+				return action.OnCooldown() ? 0f : action.SustainedScore();
 			});
-			return scoreIndex > -1 ? _actionIndicesByScore[scoreIndex] : -1;
+			return scoreIndex > -1 ? _actionIndicesByScore[scoreIndex] : NO_ID;
 		}
 
 		private float GetActionScore(in int actionID)
@@ -612,7 +660,6 @@ namespace Smidgenomics.Unity.UAI
 			}
 
 			return count;
-
 		}
 
 		internal void ForEachActiveBucketConsideration(ActionRefRO<ConsiderationInfo> fn)
@@ -672,7 +719,7 @@ namespace Smidgenomics.Unity.UAI
 
 			if (instance != null)
 			{
-				action.cooldownEnd = Time.time + instance.GetActionCooldown();
+				action.cooldownEnd = GetCurrentTime() + instance.GetActionCooldown();
 			}
 			
 			action.deactivating = false;
@@ -696,11 +743,11 @@ namespace Smidgenomics.Unity.UAI
 			{
 				record.instance = record.template.InstantiateAction();
 			}
-			// record.instance = record.template.InstantiateAction();
 			record.instance._brain = this;
-
 			record.instance._status = EUAIActionStatus.Active;
 			record.activationRoutine = UAIManager.RunCoroutine(record.instance.ActivateAction(), OnActionFinished);
+			record.lastActivation = GetCurrentTime();
+
 		}
 
 		// called when action finishes early
@@ -732,8 +779,7 @@ namespace Smidgenomics.Unity.UAI
 		{
 			while (true)
 			{
-				
-				yield return new WaitUntil(NotDeactivatingAction);
+				yield return new WaitUntil(PRED_NotDeactivatingAction);
 				ScoreActions();
 				SetNextAction();
 				yield return new WaitForSeconds(GetCurrentActionScoringRate());
@@ -744,14 +790,12 @@ namespace Smidgenomics.Unity.UAI
 		{
 			while (true)
 			{
-				yield return new WaitUntil(NotDeactivatingAction);
+				yield return new WaitUntil(PRED_NotDeactivatingAction);
 				ScoreBuckets();
 				SetNextBucket();
 				yield return new WaitForSeconds(GetCurrentBucketScoringRate());
 			}
 		}
-
-		private bool NotDeactivatingAction() => !_deactivatingAction;
 
 		private IUAIAction GetCurrentActionInstance()
 		{
@@ -766,11 +810,15 @@ namespace Smidgenomics.Unity.UAI
 			? _actionRecords[_currentActionID].template
 			: null;
 		}
+		
+		// predicate for coroutines
+		private bool PRED_NotDeactivatingAction() => !_deactivatingAction;
 
 		private static void StartRoutine(ref Coroutine outRef, Func<IEnumerator> fn)
 		{
 			outRef = UAIManager.RunCoroutine(fn());
 		}
+		
 
 	}
 }

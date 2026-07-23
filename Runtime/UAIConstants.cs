@@ -7,8 +7,6 @@
 
 namespace Smidgenomics.Unity.UAI
 {
-	using Color = UnityEngine.Color;
-
 	internal static class UAIConstants
 	{
 		// asset context path
@@ -16,15 +14,9 @@ namespace Smidgenomics.Unity.UAI
 		public const string AC_PATH = "Smidgenomics/Utility AI/"; // [AddComponent]
 		public const string RES_PATH = "smidgenomics.uai"; // path in Resources
 		public const string WIN_PATH_DEBUG = "Window/AI/UAI Monitor";
-		public const float MIN_COOLDOWN = 0.01f;
-		// public static readonly Color COLOR_ACTION_ACTIVE = Color.green;
-		// public static readonly Color COLOR_SELECTABLE = Color.white;
-		// public static readonly Color COLOR_MUTED = new Color(0.7f, 0.7f, 0.7f);
-		// public static readonly Color COLOR_ACTION_DEACTIVATING = Color.yellow;
-		// public static readonly Color COLOR_ACTION_CANCELLED = Color.blue;
-		// public static readonly Color COLOR_ACTION_FINISHED = Color.cyan;
-		// public static readonly Color COLOR_ACTION_UNCANCELLABLE = Color.magenta;
-		// public static readonly Color COLOR_ACTION_UNCANCELLABLE = Color.white;
-		// public static readonly Color COLOR_ACTION_SUSTAINED = new Color(0.5f, 0f, 0.5f);
+		public const float MIN_COOLDOWN = 0f;
+		
+		internal const string DEFAULT_CONSIDERATION_ICON_GUID = "d8ec218438d247b49a3a0f61ed39664d";
+		internal const string DEFAULT_ACTION_ICON_GUID = "b403041b6ec9a3744b4e92bc8014f7f6";
 	}
 }
