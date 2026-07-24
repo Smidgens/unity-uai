@@ -5,9 +5,9 @@ namespace Smidgenomics.Unity.UAI
 	using System;
 	using System.Collections.Generic;
 
-	public static class UAIHelpers
+	public static class UAISort
 	{
-		public static void SortIndicesByWeight(ref int[] indices, int i, int n, Func<int, float> fn, bool desc = false)
+		public static void IndicesByWeight(ref int[] indices, int i, int n, Func<int, float> fn, bool desc = false)
 		{
 			Array.Sort(indices, i, n, new CompareByPredicate(fn, desc));
 		}

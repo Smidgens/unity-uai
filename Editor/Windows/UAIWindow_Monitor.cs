@@ -439,7 +439,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			{
 				if (_currentBrain.CurrentActionID > -1)
 				{
-					ref readonly UAIBrain.ActionRecord currentAction = ref _currentBrain.GetCurrentAction();
+					ref readonly UAIBrain.ActionRecord currentAction = ref _currentBrain.GetCurrentActionRef();
 
 					if (currentAction.bucketID == br.ID)
 					{
@@ -477,7 +477,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 				var timeLabel = GetFormattedTimestamp(ar.cooldownEnd - Time.time);
 				GUI.Label(cooldownRect, timeLabel, _editorStyles.CooldownLabelStyle);
 			}
-			if (ar.actionID == _currentBrain.CurrentActionID)
+			if (ar.ID == _currentBrain.CurrentActionID)
 			{
 				PulseRect(cachedRow, ar.lastActivation);
 			}
@@ -492,7 +492,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private UAIAtlasIcon GetActionIcon(in UAIBrain.ActionRecord action, UAIBrain aiBrain)
 		{
-			if (aiBrain.CurrentActionID == action.actionID)
+			if (aiBrain.CurrentActionID == action.ID)
 			{
 				if (action.deactivating)
 				{
@@ -517,10 +517,13 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private float GetCurrentBrainActivityHeight()
 		{
-			var bucketCount = _currentBrain.GetBucketCount();
+			var bucketCount = _currentBrain.BucketCount;
 			var actionCount = _currentBrain.GetCurrentBucketActionCount();
 			// we're still exiting action in bucket
-			if (_currentBrain.GetCurrentActionBucketID() != _currentBrain.CurrentBucketID)
+			
+			ref readonly var currentAction = ref _currentBrain.GetCurrentActionRef();
+
+			if (currentAction.bucketID != _currentBrain.CurrentBucketID)
 			{
 				actionCount++;
 			}

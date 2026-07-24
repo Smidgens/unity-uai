@@ -25,9 +25,6 @@ namespace Smidgenomics.Unity.UAI
 		// cooldown based on current state
 		public float GetActionCooldown();
 
-		// reset execution state to allow action re-use
-		internal void ResetActionInternal();
-
 		// execution status
 		public EUAIActionStatus GetActionStatus();
 

@@ -2,20 +2,6 @@
 
 // ReSharper disable All
 
-
-
-namespace Smidgenomics.Unity.UAI
-{
-	using System.Collections.Generic;
-
-	public struct UAIScoringContext
-	{
-		public IEnumerable<IUAIConsideration> considerations;
-		public int scoreIndex;
-		public float[] scores;
-	}
-}
-
 namespace Smidgenomics.Unity.UAI
 {
 	using System.Collections.Generic;

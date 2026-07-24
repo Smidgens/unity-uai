@@ -2,7 +2,7 @@
 
 // Resharper disable all
 
-// #if UNITY_EDITOR
+#if UNITY_EDITOR
 
 namespace Smidgenomics.Unity.UAI
 {
@@ -85,4 +85,4 @@ namespace Smidgenomics.Unity.UAI
 
 }
 
-// #endif
+#endif

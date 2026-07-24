@@ -21,13 +21,13 @@ namespace Smidgenomics.Unity.UAI
 		{
 			return _status;
 		}
-		
+
 		/// <summary>
 		/// Returns wait time before action can be considered again after deactivation
 		/// </summary>
 		public virtual float GetActionCooldown()
 		{
-			return 1;
+			return UAIDefaults.DEFAULT_ACTION_COOLDOWN;
 		}
 
 		/// <summary>
@@ -45,7 +45,7 @@ namespace Smidgenomics.Unity.UAI
 		{
 			return null;
 		}
-		
+
 		/// <summary>
 		/// When true, action can be cancelled if another is selected
 		/// </summary>
@@ -54,25 +54,10 @@ namespace Smidgenomics.Unity.UAI
 			return true;
 		}
 
-		/// <summary>
-		/// Opportunity for action to reset its state manually for when action is re-used
-		/// </summary>
-		public virtual void ResetAction()
-		{
-			
-		}
-
 		public virtual bool IsReusable()
 		{
 			return true;
 			// return GetType().GetMethod(nameof(ResetAction))?.DeclaringType != typeof(UAIAction);
-		}
-
-		// called by UAI brain when action is reused
-		void IUAIAction.ResetActionInternal()
-		{
-			ResetAction();
-			// TODO: other base class cleanup
 		}
 
 		protected void FinishAction()

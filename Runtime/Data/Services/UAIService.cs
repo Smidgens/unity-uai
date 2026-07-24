@@ -41,5 +41,10 @@ namespace Smidgenomics.Unity.UAI
 		{
 			// override me
 		}
+
+		public IUAIService Clone()
+		{
+			return ScriptableObject.Instantiate(this);
+		}
 	}
 }

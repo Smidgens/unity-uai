@@ -15,5 +15,6 @@ namespace Smidgenomics.Unity.UAI
 		
 		// default score for actions without considerations
 		public const float DEFAULT_ACTION_SCORE = 1f;
+		public const float DEFAULT_ACTION_COOLDOWN = 1f;
 	}
 }

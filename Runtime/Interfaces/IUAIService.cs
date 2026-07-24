@@ -12,11 +12,12 @@ namespace Smidgenomics.Unity.UAI
 	/// </summary>
 	public interface IUAIService
 	{
-		void InitService();
+		public void InitService();
 
-		void StartService();
+		public void StartService();
 
-		void StopService();
+		public void StopService();
+		public IUAIService Clone();
 
 	}
 }
