@@ -31,9 +31,9 @@ namespace Smidgenomics.Unity.UAI
 			return indices[UnityEngine.Random.Range(0, indices.Count - 1)];
 		}
 
-		public override Rect GetDebugIconCoords()
+		public override (string, Rect) GetDebugIcon()
 		{
-			return new Rect(0.125f * 2, 0.125f * 7, 0.125f, 0.125f);
+			return ("a1446d554144a4944b389210a34ff6b9", new Rect(0.125f * 2, 0.125f * 7, 0.125f, 0.125f));
 		}
 
 		[Range(0, 1)]

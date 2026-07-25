@@ -63,12 +63,12 @@ namespace Smidgenomics.Unity.UAI
 		/// Dave Mark's "magic" utility formula to renormalize aggregate score
 		/// (Bring small value from multiplying scores together closer to 1)
 		/// </summary>
-		public static float RenormalizeAggregateScore(int ConsiderationCount, float AggregateScore)
+		public static float RenormalizeAggregateScore(int considerationCount, float aggregateScore)
 		{
-			if(ConsiderationCount <= 0){ return 0; }
-			float ModFactor = 1 - (1 / ConsiderationCount);
-			float MakeupValue = (1 - AggregateScore) * ModFactor;
-			return AggregateScore + (MakeupValue * AggregateScore);
+			if(considerationCount <= 0){ return 0; }
+			float ModFactor = 1 - (1 / considerationCount);
+			float MakeupValue = (1 - aggregateScore) * ModFactor;
+			return aggregateScore + (MakeupValue * aggregateScore);
 		}
 
 		public static int GetRandomArrayIndexWeighted<T>(int count, System.Func<int,float> weightFn)
@@ -80,13 +80,13 @@ namespace Smidgenomics.Unity.UAI
 			}
 			return GetRandomArrayIndexWeighted(weights, (in float w) => w);
 		}
-		
+
 		public static int GetRandomArrayIndexWeighted<T>(in IList<float> weights)
 		{
 			return GetRandomArrayIndexWeighted(weights, (in float w) => w);
 		}
 
-		public static int GetRandomArrayIndexWeighted<T>(in IList<T> arr, FuncRefRO<T, float> weightFn)
+		public static int GetRandomArrayIndexWeighted<T>(in IList<T> arr, UAIDelegates.FuncRefRO<T, float> weightFn)
 		{
 			if (arr.Count == 0)
 			{

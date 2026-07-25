@@ -7,9 +7,9 @@ namespace Smidgenomics.Unity.UAI
 
 	public static class UAISort
 	{
-		public static void IndicesByWeight(ref int[] indices, int i, int n, Func<int, float> fn, bool desc = false)
+		public static void IndicesByWeight(ref int[] indices, int i, int n, Func<int, float> fn, bool asc = true)
 		{
-			Array.Sort(indices, i, n, new CompareByPredicate(fn, desc));
+			Array.Sort(indices, i, n, new CompareByPredicate(fn, asc));
 		}
 
 		private readonly struct CompareByPredicate : IComparer<int>

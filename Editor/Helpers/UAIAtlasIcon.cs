@@ -4,11 +4,11 @@ namespace Smidgenomics.Unity.UAI.Editor
 {
 	using UnityEditor;
 	using UnityEngine;
-	
-	//[System.Serializable]
+
 	internal readonly struct UAIAtlasIcon
 	{
-		public static UAIAtlasIcon Empty;
+		// for returning default refs
+		public static UAIAtlasIcon Empty = new ();
 		public readonly Rect coords; //
 		public readonly Texture2D atlas;
 
@@ -30,7 +30,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 		{
 			if (!atlas)
 			{
-				EditorGUI.DrawRect(area, Color.magenta);
+				EditorGUI.DrawRect(area, Color.magenta * 0.5f);
 				return;
 			}
 

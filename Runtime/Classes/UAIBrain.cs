@@ -122,6 +122,9 @@ namespace Smidgenomics.Unity.UAI
 			};
 
 			InitExecutionContext();
+
+			StartRoutine(ref _bucketScoringRoutine, BucketScoringRoutine);
+			StartRoutine(ref _actionScoringRoutine, ActionScoringRoutine);
 		}
 
 		public void StopLogic()
@@ -190,7 +193,7 @@ namespace Smidgenomics.Unity.UAI
 			return brain;
 		}
 
-		internal void ForEachActionInBucket(int bucketID, ActionRefRO<ActionRecord> fn, bool sortByScore = true)
+		internal void ForEachActionInBucket(int bucketID, UAIDelegates.ActionRefRO<ActionRecord> fn, bool sortByScore = true)
 		{
 			if (!_bucketRecords.IsValidIndex(bucketID))
 			{
@@ -217,7 +220,7 @@ namespace Smidgenomics.Unity.UAI
 			}
 		}
 
-		internal void ForEachBucket(ActionRefRO<BucketRecord> fn, bool sortByScore = true)
+		internal void ForEachBucket(UAIDelegates.ActionRefRO<BucketRecord> fn, bool sortByScore = true)
 		{
 			if (!sortByScore)
 			{
@@ -306,6 +309,7 @@ namespace Smidgenomics.Unity.UAI
 			{
 				if (activationRoutine != null || deactivating)
 				{
+					// why tf is this broken...
 					// return totalTimeActive + TimeFromLastActivation();
 				}
 				return totalTimeActive;
@@ -318,12 +322,18 @@ namespace Smidgenomics.Unity.UAI
 				{
 					return false;
 				}
-				return cooldownEnd > Time.time;
+				return cooldownEnd >= Time.time;
 			}
 
-			public readonly float SustainedScore()
+			public readonly bool ShouldSustainScore()
 			{
-				if (template._sustainAction)
+				// return template._sustainAction && activationRoutine != null;
+				return template._sustainAction && activationRoutine != null;
+			}
+
+			public readonly float GetScore()
+			{
+				if (ShouldSustainScore())
 				{
 					var t = template._sustainCurve.Evaluate(TimeFromLastActivation());
 					return Mathf.Max(0f, t * score);
@@ -471,12 +481,6 @@ namespace Smidgenomics.Unity.UAI
 			_actionIndicesByScore = actionIndices.ToArray();
 			_bucketIndicesByScore = bucketIndices.ToArray();
 
-			SetNextBucket();
-			SetNextAction();
-
-			StartRoutine(ref _bucketScoringRoutine, BucketScoringRoutine);
-			StartRoutine(ref _actionScoringRoutine, ActionScoringRoutine);
-
 			if (!_cachedManager)
 			{
 				_cachedManager = UAIManager.GetInstance();
@@ -530,10 +534,14 @@ namespace Smidgenomics.Unity.UAI
 			for (int i = 0; i < bucket.actionCount; i++)
 			{
 				var actionID = _actionIndicesByScore[bucket.actionIndex + i];
+
 				ref ActionRecord record = ref _actionRecords[actionID];
 
 				scoreCtx.scoreIndex = record.considerationIndex;
-				record.cancellable = record.instance != null ? record.instance.CanCancelAction() : false;
+
+				record.cancellable = record.instance != null
+				? record.instance.CanCancelAction() :
+				false;
 
 				bool shouldScore = true;
 
@@ -552,7 +560,7 @@ namespace Smidgenomics.Unity.UAI
 			UAISort.IndicesByWeight(ref _actionIndicesByScore, bucket.actionIndex, bucket.actionCount, i =>
 			{
 				// return _actionRecords[i].score;
-				return _actionRecords[i].SustainedScore();
+				return _actionRecords[i].GetScore();
 			}, false);
 		}
 
@@ -616,6 +624,13 @@ namespace Smidgenomics.Unity.UAI
 
 			var nextIndex = SelectAction();
 
+#if SM_DEV
+			if (IsValidActionID(nextIndex) && Mathf.Approximately(_actionRecords[nextIndex].score, 0f))
+			{
+				Debug.Log("Action selected with score 0: " + _actionRecords[nextIndex].template.Name);
+			}
+#endif
+
 			// already running best action
 			if (IsValidActionID(nextIndex) && nextIndex == _currentActionID)
 			{
@@ -660,11 +675,14 @@ namespace Smidgenomics.Unity.UAI
 
 			var selector = bucket.bucketSO._actionSelector;
 
-			int scoreIndex = bucket.actionIndex + selector.SelectIndex(bucket.actionCount, i =>
+			int scoreIndex = aIndex + selector.SelectIndex(bucket.actionCount, i =>
 			{
 				ref readonly ActionRecord action = ref _actionRecords[_actionIndicesByScore[aIndex + i]];
-				return action.OnCooldown() ? 0f : action.SustainedScore();
+				var score = action.OnCooldown() ? 0f : action.GetScore();
+
+				return action.OnCooldown() ? 0f : action.GetScore();
 			});
+
 			return scoreIndex > -1 ? _actionIndicesByScore[scoreIndex] : INVALID_ID;
 		}
 
@@ -755,7 +773,7 @@ namespace Smidgenomics.Unity.UAI
 			return count;
 		}
 
-		internal void ForEachActiveBucketConsideration(ActionRefRO<ConsiderationInfo> fn)
+		internal void ForEachActiveBucketConsideration(UAIDelegates.ActionRefRO<ConsiderationInfo> fn)
 		{
 			if (!IsValidBucketID(_currentBucketID))
 			{
@@ -777,7 +795,7 @@ namespace Smidgenomics.Unity.UAI
 			}
 		}
 		
-		internal void ForEachActiveActionConsideration(ActionRefRO<ConsiderationInfo> fn)
+		internal void ForEachActiveActionConsideration(UAIDelegates.ActionRefRO<ConsiderationInfo> fn)
 		{
 			if (!IsValidActionID(_currentActionID))
 			{

@@ -26,7 +26,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		public static string GetFormattedDuration(float timeSeconds)
 		{
-			
 			if (Mathf.Approximately(timeSeconds, 0f))
 			{
 				return "0s";
@@ -41,8 +40,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 			{
 				return $"{(int)(timeSeconds * 1000)}ms";
 			}
-			
-			
 			return $"{(int)(timeSeconds)}s";
 		}
 	}

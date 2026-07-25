@@ -19,7 +19,7 @@ namespace Smidgenomics.Unity.UAI
 			return _values.ContainsKey(key);
 		}
 
-		public void ForEachMemoryValue(ActionRefRO<UAIMemoryKey, UAIMemoryValue> fn)
+		public void ForEachMemoryValue(UAIDelegates.ActionRefRO<UAIMemoryKey, UAIMemoryValue> fn)
 		{
 			foreach (var kvp in _values)
 			{

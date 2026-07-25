@@ -8,6 +8,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using UnityEditor;
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 
 	internal sealed class UAIWindow_Monitor : EditorWindow
 	{
@@ -33,13 +34,13 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private enum EPanelFloat { Left, Right }
 
 		[Flags]
-		private enum EBrainTab
+		private enum EBrainPanel
 		{
 			Actions = 1,
 			Timeline = 2,
 			Stats = 4,
 		}
-
+		
 		[Flags]
 		private enum EInfoPanel
 		{
@@ -66,18 +67,22 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private const int _W_SEPARATOR = 1;
 		private static readonly Color _SEPARATOR_COLOR = Color.black * 0.3f;
 
-		[SerializeField] private EBrainTab _tabBrain;
-		
 		private float _cachedLegendWidth;
 
 		private readonly PrefsHandle_Int _prefsVisibleInfos = new ($"UAIEditor.panels");
 		private readonly PrefsHandle_Int _prefsVisibleTab = new ($"UAIEditor.tab");
 
 		private UAIBrain _currentBrain;
-		private readonly Dictionary<string, Texture2D> _loadedTextures = new();
+		
+		// UAISelector types can provide their own icons
+		private readonly Dictionary<Type, UAIAtlasIcon> _cachedSelectorIcons = new();
+
 		private Vector2 _scrollBrainList;
 		private UAIEditorAtlas _iconAtlas;
 		private UAIEditorStyles _editorStyles;
+		
+		private (string, Rect) _tooltip;
+		private GUIStyle _tooltipStyle; // move later
 
 		private readonly (EUAIAtlasIcon, string)[] _legendItems =
 		{
@@ -160,7 +165,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 				new()
 				{
 					label = new GUIContent("Actions"),
-					visibilityFlag = (int)EBrainTab.Actions,
+					visibilityFlag = (int)EBrainPanel.Actions,
 					flagPrefs = _prefsVisibleTab,
 					bgDrawFn = DrawPanel_Actions,
 					sizeFn = () => new Vector2(0f, GetPanelHeight_Actions()),
@@ -169,7 +174,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 				new()
 				{
 					label = new GUIContent("Timeline"),
-					visibilityFlag = (int)EBrainTab.Timeline,
+					visibilityFlag = (int)EBrainPanel.Timeline,
 					flagPrefs = _prefsVisibleTab,
 					bgDrawFn = DrawPanel_Timeline,
 					icon = EUAIAtlasIcon.Timeline,
@@ -177,7 +182,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 				new()
 				{
 					label = new GUIContent("Stats"),
-					visibilityFlag = (int)EBrainTab.Stats,
+					visibilityFlag = (int)EBrainPanel.Stats,
 					flagPrefs = _prefsVisibleTab,
 					bgDrawFn = DrawPanel_Stats,
 					icon = EUAIAtlasIcon.Stats,
@@ -233,7 +238,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 					sizeFn = () =>
 					{
 						var height = _currentBrain != null
-						? _editorStyles.LegendLabelHeight * _currentBrain.GetActiveServiceCount()
+						? _editorStyles.LegendLabelHeight * _currentBrain.GetActiveServiceCount() + 1
 						: 0;
 						return new Vector2(_W_PANEL_SERVICES, height);
 					},
@@ -322,11 +327,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 			Repaint();
 		}
 
-		private string _tooltip;
-		private Vector2 _tpPos;
-		private Vector2 _tpSize;
-		private GUIStyle _tpStyle;
-
 		private bool CheckMouseInLocalRect(Rect localRect)
 		{
 			var mousePos = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
@@ -338,9 +338,9 @@ namespace Smidgenomics.Unity.UAI.Editor
 			mousePos = GUIUtility.GUIToScreenPoint(mousePos);
 			mousePos.y -= 25;
 			
-			if (_tpStyle == null)
+			if (_tooltipStyle == null)
 			{
-				_tpStyle = new GUIStyle(GUI.skin.label);
+				_tooltipStyle = new GUIStyle(GUI.skin.label);
 			}
 
 			if (!position.Contains(mousePos))
@@ -351,13 +351,14 @@ namespace Smidgenomics.Unity.UAI.Editor
 			var wPos = position.position;
 			var wSize = position.size;
 
-			_tooltip = label;
-			_tpSize = _tpStyle.CalcSize(new GUIContent(label));
+			var tpSize = _tooltipStyle.CalcSize(new GUIContent(label));
 
-			_tpPos = new Vector2(mousePos.x - wPos.x, mousePos.y - wPos.y);
+			var tpPos = new Vector2(mousePos.x - wPos.x, mousePos.y - wPos.y);
 	
-			_tpPos.x = Mathf.Clamp(_tpPos.x, 0, wSize.x - _tpSize.x);
-			_tpPos.y = Mathf.Clamp(_tpPos.y, 0, wSize.y - _tpSize.y);
+			tpPos.x = Mathf.Clamp(tpPos.x, 0, wSize.x - tpSize.x);
+			tpPos.y = Mathf.Clamp(tpPos.y, 0, wSize.y - tpSize.y);
+
+			_tooltip = (label, new Rect(tpPos, tpSize));
 		}
 
 
@@ -365,7 +366,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 		{
 			_editorStyles ??= UAIEditorStyles.CreateInstance();
 			
-			// SetTooltip(Event.current.mousePosition, "Test");
 			var wRect = new Rect(0f, 0f, position.width, position.height);
 
 			DrawPanelTabs(ref wRect, _infoPanels);
@@ -378,12 +378,11 @@ namespace Smidgenomics.Unity.UAI.Editor
 			DrawInfoPanels(ref wRect);
 			DrawBrainView(wRect);
 
-			if (!string.IsNullOrEmpty(_tooltip))
+			if (!string.IsNullOrEmpty(_tooltip.Item1))
 			{
-				var tpRect = new Rect(_tpPos, _tpSize);
-				EditorGUI.DrawRect(tpRect, Color.black * 0.7f);
-				EditorGUI.LabelField(tpRect, _tooltip, GUI.skin.label);
-				_tooltip = null;
+				EditorGUI.DrawRect(_tooltip.Item2, Color.black * 0.7f);
+				EditorGUI.LabelField(_tooltip.Item2, _tooltip.Item1, GUI.skin.label);
+				_tooltip = default;
 				
 			}
 
@@ -438,9 +437,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 		{
 			var tbRect = r.SliceTop(_editorStyles.ToolbarHeight);
 			GUI.Box(tbRect, GUIContent.none, EditorStyles.toolbar);
-			for (var i = 0; i < panels.Length; i++)
+			foreach (var panel in panels)
 			{
-				ref readonly var panel = ref panels[i];
 				DoPanelToggle(ref tbRect, panel, multiFlag);
 			}
 		}
@@ -490,21 +488,19 @@ namespace Smidgenomics.Unity.UAI.Editor
 			return pressed;
 		}
 
-		private Texture2D GetCachedTextureByGUID(string texGUID)
-		{
-			if (_loadedTextures.TryGetValue(texGUID, out var outTex))
-			{
-				return outTex;
-			}
-			var tex = LoadFromGUID<Texture2D>(texGUID);
-			_loadedTextures[texGUID] = tex;
-			return tex;
-		}
-
 		private UAIAtlasIcon GetSelectorIcon(UAISelector selector)
 		{
-			var tex = GetCachedTextureByGUID(selector.GetDebugIconGUID());
-			return new UAIAtlasIcon(selector.GetDebugIconCoords(), tex);
+			if (_cachedSelectorIcons.TryGetValue(selector.GetType(), out var outIcon))
+			{
+				return outIcon;
+			}
+			var (guid, coords) = selector.GetDebugIcon();
+			var tex = !string.IsNullOrEmpty(guid)
+			? LoadFromGUID<Texture2D>(guid)
+			: null;
+			var icon = new UAIAtlasIcon(coords, tex);
+			_cachedSelectorIcons[selector.GetType()] = icon;
+			return icon;
 		}
 
 		private void DrawBrainFooter(Rect areaRect)
@@ -617,7 +613,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 			{
 				_actionStatColumns = new (GUIContent, UAIDelegates.ActionRefRO<Rect, UAIBrain.ActionRecord>)[]
 				{
-					
 					(new GUIContent("Select %  "), (in Rect pos, in UAIBrain.ActionRecord action) =>
 					{
 						var ratio = _currentBrain.TotalActivations > 0
@@ -641,10 +636,11 @@ namespace Smidgenomics.Unity.UAI.Editor
 						: "-";
 						EditorGUI.LabelField(pos, label, _editorStyles.ActionLabelStyle);
 					}),
-					(new GUIContent("Last Score  "), (in Rect pos, in UAIBrain.ActionRecord action) =>
+					(new GUIContent("Score   "), (in Rect pos, in UAIBrain.ActionRecord action) =>
 					{
-						var label = action.activations > 0
-						? FormatScoreLabel(action.score)
+						var sust = action.ShouldSustainScore() && action.ID == _currentBrain.CurrentActionID;
+						var label = true
+						? $"{(sust ? "~" : "")}{FormatScoreLabel(action.GetScore())}"
 						: "-";
 						EditorGUI.LabelField(pos, label, _editorStyles.ActionLabelStyle);
 					}),
@@ -673,21 +669,29 @@ namespace Smidgenomics.Unity.UAI.Editor
 							}
 						}
 						EditorGUI.LabelField(pos, label, _editorStyles.ActionLabelStyle);
-
-						// if (CheckMouseInLocalRect(pos))
-						// {
-						// 	SetTooltip(Event.current.mousePosition, "Total time running action");
-						// }
 					}),
 					(new GUIContent("Weight  "), (in Rect pos, in UAIBrain.ActionRecord action) =>
 					{
 						EditorGUI.LabelField(pos, $"{action.template._weight:0.0}", _editorStyles.ActionLabelStyle);
 					}),
 					
+					(new GUIContent("Cooldown  "), (in Rect pos, in UAIBrain.ActionRecord action) =>
+					{
+						if (action.OnCooldown())
+						{
+							var timeLabel = UAIEditorGUI.GetFormattedDuration(action.cooldownEnd - Time.time);
+							GUI.Label(pos, timeLabel, _editorStyles.ActionLabelStyle);
+						}
+						else
+						{
+							EditorGUI.LabelField(pos, "-", _editorStyles.ActionLabelStyle);
+							
+						}
+					}),
+					
 				};
 			}
-			
-			
+
 			var rowHeight = _editorStyles.ActionLabelHeight;
 
 			var rColor = _SEPARATOR_COLOR * 0.25f;
@@ -809,8 +813,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			EditorGUI.DrawRect(r.SliceTop(_W_SEPARATOR), _SEPARATOR_COLOR);
 			rr = r;
 		}
-		
-		
+
 
 		private void DrawActionRow(Rect actionRow, in UAIBrain.ActionRecord ar)
 		{
@@ -823,10 +826,11 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 			EditorGUI.LabelField(actionRow, ar.template.Name, _editorStyles.ActionLabelStyle);
 
-			var scoreLabel = FormatScoreLabel(ar.SustainedScore());
+			var scoreLabel = FormatScoreLabel(ar.GetScore());
 			EditorGUI.LabelField(scoreRect, scoreLabel, _editorStyles.ScoreLabelStyle);
 	
-			var stateIcon = GetActionStatusIcon(ar, _currentBrain);
+			var stateIconType = GetActionStatusIcon(ar, _currentBrain);
+			ref readonly var stateIcon = ref GetAtlasIcon(stateIconType);
 			stateIcon.Draw(iconRect.Resized(-iconRect.height * 0.15f), UAIEditorStyles.GetIconColor());
 
 			if (ar.OnCooldown())
@@ -840,30 +844,27 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 		}
 
-
-		private UAIAtlasIcon GetActionStatusIcon(in UAIBrain.ActionRecord action, UAIBrain aiBrain)
+		private static EUAIAtlasIcon GetActionStatusIcon(in UAIBrain.ActionRecord action, UAIBrain brain)
 		{
-			if (aiBrain.CurrentActionID == action.ID)
+			if (brain.CurrentActionID == action.ID)
 			{
 				if (action.deactivating)
 				{
-					return GetAtlasIcon(EUAIAtlasIcon.Deactivating);
+					return EUAIAtlasIcon.Deactivating;
 				}
-
 				return !action.cancellable
-				? GetAtlasIcon(EUAIAtlasIcon.Uncancellable)
-				: GetAtlasIcon(EUAIAtlasIcon.Active);
+				? EUAIAtlasIcon.Uncancellable
+				: EUAIAtlasIcon.Active;
 			}
 			if (action.OnCooldown())
 			{
 				return action.cancelled
-				? GetAtlasIcon(EUAIAtlasIcon.Cancelled)
-				: GetAtlasIcon(EUAIAtlasIcon.Finished);
+				? EUAIAtlasIcon.Cancelled
+				: EUAIAtlasIcon.Finished;
 			}
-
-			return Mathf.Approximately(action.score, 0)
-			? GetAtlasIcon(EUAIAtlasIcon.Muted)
-			: GetAtlasIcon(EUAIAtlasIcon.Selectable);
+			return  Mathf.Approximately(action.score, 0)
+			? EUAIAtlasIcon.Muted
+			: EUAIAtlasIcon.Selectable;
 		}
 
 		private float GetPanelHeight_Actions()
@@ -890,7 +891,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			EditorGUI.DrawRect(sepRect, _SEPARATOR_COLOR);
 		}
 
-		private void DrawPanel_Services(Rect r)
+		private void DrawPanel_Services(Rect scrollRect)
 		{
 			if (_currentBrain == null)
 			{
@@ -898,18 +899,28 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 
 			ref readonly var currentBucket = ref _currentBrain.GetBucketRef(_currentBrain.CurrentBucketID);
-		
-			var serviceCount = currentBucket.services.Length;
 
-			var lineHeight = EditorGUIUtility.singleLineHeight;
-			var totalHeight = serviceCount * lineHeight;
-
-			var scrollRect = new Rect(0, 0, r.width, totalHeight);
-
-			if (totalHeight > r.height)
+			if (currentBucket.services.Length == 0)
 			{
-				scrollRect.width -= _editorStyles.ScrollbarWidth;
+				return;
 			}
+
+			var lineHeight = _editorStyles.LegendLabelHeight;
+
+			var headerRect = scrollRect.SliceTop(lineHeight);
+			
+			DrawHeaderLabel(headerRect, currentBucket.label, GetAtlasIcon(EUAIAtlasIcon.Bucket));
+		
+			// var rowCount = currentBucket.services.Length;
+
+			// var totalHeight = rowCount * lineHeight;
+			//
+			// var scrollRect = new Rect(0, 0, r.width, totalHeight);
+			//
+			// if (totalHeight > r.height)
+			// {
+			// 	scrollRect.width -= _editorStyles.ScrollbarWidth;
+			// }
 
 			foreach (var s in currentBucket.services)
 			{

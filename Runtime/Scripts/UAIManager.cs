@@ -56,7 +56,7 @@ namespace Smidgenomics.Unity.UAI
 			_brains = blist.ToArray();
 		}
 
-		internal void ForEachTrackedBrain(ActionRefRO<TrackedBrain> fn)
+		internal void ForEachTrackedBrain(UAIDelegates.ActionRefRO<TrackedBrain> fn)
 		{
 			for (int i = 0; i < _brains.Length; i++)
 			{
