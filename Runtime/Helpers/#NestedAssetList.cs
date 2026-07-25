@@ -24,6 +24,12 @@ namespace Smidgenomics.Unity.UAI.Editor
 		
 		public bool DrawTypeIcon { get; set; }
 
+		public float HeaderHeight
+		{
+			get => _assetList.headerHeight;
+			set => _assetList.headerHeight = value;
+		}
+
 		public int Count => _assetList.count;
 
 		public string DefaultTypeIconGUID
@@ -81,6 +87,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 			if (_childInspector && _childInspector.target)
 			{
 				EditorGUILayout.Space(2);
+
+				DrawHeader();
 				_childInspector.OnInspectorGUI();
 			}
 		}
@@ -102,18 +110,34 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private Lazy<Texture> _defaultTypeIcon = null;
 
 		private GUIContent _contextIcon;
+		private float _ctxButtonHeight;
 
 		private void DrawContextButton(Rect rect, T asset)
 		{
 			if (_contextIcon == null)
 			{
 				_contextIcon = new GUIContent(EditorGUIUtility.FindTexture("_Menu"));
+				_ctxButtonHeight = EditorStyles.iconButton.CalcHeight(_contextIcon, 100);
 			}
-			
-			if (GUI.Button(rect, _contextIcon, EditorStyles.iconButton))
+
+			var btnRect = rect;
+			var btnCenter = btnRect.center;
+			btnRect.height = _ctxButtonHeight;
+			btnRect.center = btnCenter;
+
+			if (GUI.Button(btnRect, _contextIcon, EditorStyles.iconButton))
 			{
 				ShowContextMenu(asset);
 			}
+		}
+
+		private void DrawHeader()
+		{
+			var currentType = _childInspector.target.GetType();
+			var typeLabel = $"{currentType.Namespace}.{currentType.Name}";
+			EditorGUILayout.BeginVertical(GUI.skin.box);
+			EditorGUILayout.LabelField(typeLabel, EditorStyles.miniLabel);
+			EditorGUILayout.EndVertical();
 		}
 
 		private void ShowContextMenu(T asset)
@@ -160,8 +184,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private void DrawListItem(Rect rect, int index)
 		{
-			rect.SliceLeft(2f);
-			rect.SliceRight(2f);
+			// rect.SliceLeft(2f);
+			// rect.SliceRight(2f);
 			
 			SerializedProperty prop = _arrayProp.GetArrayElementAtIndex(index);
 			SerializedProperty obProp = prop.FindPropertyRelative("item");
@@ -171,20 +195,23 @@ namespace Smidgenomics.Unity.UAI.Editor
 			if (DrawTypeIcon)
 			{
 				var iconRect = rect.SliceLeft(rect.height);
-				rect.SliceLeft(1);
+				rect.SliceLeft(rect.height * 0.25f);
 				DrawIcon(iconRect, asset);
 			}
 
 			var ctxRect = rect.SliceRight(rect.height * 0.6f);
-			rect.SliceRight(5f);
+			rect.SliceRight(rect.height * 0.25f);
 			DrawContextButton(ctxRect, asset);
-			
+
 			var checkRect = rect.SliceLeft(rect.height);
 			var newEnabled = GUI.Toggle(checkRect, asset._enabled, GUIContent.none);
 			if (newEnabled != asset._enabled)
 			{
-				Undo.RecordObject(asset, "Toggle enabled");
-				asset._enabled = newEnabled;
+				EditorApplication.delayCall += () =>
+				{
+					Undo.RecordObject(asset, "Toggle enabled");
+					asset._enabled = newEnabled;
+				};
 			}
 
 			if (asset && onDrawListItem != null)
@@ -288,7 +315,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private void DrawIcon(Rect rect, ScriptableObject asset)
 		{
-			rect.Resize(-2f);
+			rect.Resize(-rect.height * 0.12f);
 			var ms = MonoScript.FromScriptableObject(asset);
 			var path = AssetDatabase.GetAssetPath(ms);
 			Texture ico = AssetDatabase.GetCachedIcon(path);
@@ -302,13 +329,18 @@ namespace Smidgenomics.Unity.UAI.Editor
 			{
 				return;
 			}
+
+			var tc = GUI.color;
+			var c = tc;
+			c.a = 0.5f;
+			GUI.color = c;
 			GUI.DrawTexture(rect, ico, ScaleMode.StretchToFill);
+			GUI.color = tc;
 		}
 
 		private static void DrawIconBasic(Rect rect, ScriptableObject asset)
 		{
-			rect.Resize(-2f);
-			
+			rect.Resize(-rect.height * 0.12f);
 			var ms = MonoScript.FromScriptableObject(asset);
 			var path = AssetDatabase.GetAssetPath(ms);
 			Texture ico = AssetDatabase.GetCachedIcon(path);

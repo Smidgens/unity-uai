@@ -23,6 +23,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 		}
 		
 		public GUIStyle ToolbarButtonStyle { get; }
+		public GUIStyle ToolbarIconButtonStyle { get; }
 		public GUIStyle HeaderLabelStyle { get; }
 		public GUIStyle ScoreLabelStyle { get; }
 		public GUIStyle BucketLabelStyle { get; }
@@ -49,12 +50,22 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private UAIEditorStyles()
 		{
+			var dummyLabel = new GUIContent("a");
+
+			var tbPadding = (int)(EditorGUIUtility.singleLineHeight * 0.25f);
+			
 			ToolbarButtonStyle = new GUIStyle(EditorStyles.toolbarButton)
 			{
-				padding = new RectOffset(4,4,4,4),
+				padding = new RectOffset(tbPadding,tbPadding,tbPadding,tbPadding),
 				stretchWidth = false,
-				border = new RectOffset(),
-				margin = new RectOffset()
+			};
+			
+			ToolbarHeight = EditorStyles.toolbarButton.CalcSize(dummyLabel).y;
+
+			ToolbarIconButtonStyle = new GUIStyle(EditorStyles.toolbarButton)
+			{
+				padding = new RectOffset((int)(ToolbarHeight + ToolbarButtonStyle.padding.left * 0.5f),tbPadding,tbPadding,tbPadding),
+				stretchWidth = false,
 			};
 
 			HeaderLabelStyle = new GUIStyle(EditorStyles.miniLabel)
@@ -102,7 +113,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 				fontSize = (int)(GUI.skin.label.fontSize * 0.9),
 			};
 
-			var dummyLabel = new GUIContent("a");
 
 			ToolbarHeight = EditorStyles.toolbarButton.CalcSize(dummyLabel).y;
 			ActionLabelHeight = ActionLabelStyle.CalcHeight(dummyLabel, 200);

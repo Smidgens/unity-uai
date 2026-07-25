@@ -28,6 +28,15 @@ namespace Smidgenomics.Unity.UAI
 			return _brain != null ? _brain.GetContext() : default;
 		}
 
+		internal void SetBrain(UAIBrain b)
+		{
+			_brain = b;
+		}
+
+		// public bool Enabled => _enabled;
+		//
+		// [SerializeField] internal bool _enabled = true;
+
 		// owning brain
 		internal UAIBrain _brain = null;
 	}

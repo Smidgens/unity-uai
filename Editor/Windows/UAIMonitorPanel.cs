@@ -9,7 +9,17 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 	internal abstract class UAIMonitorPanel
 	{
-		public void DrawPanel(Rect area)
+		public virtual string GetTabLabel()
+		{
+			return string.Empty;
+		}
+
+		public virtual EUAIAtlasIcon GetTabIcon()
+		{
+			return EUAIAtlasIcon.None;
+		}
+
+		public void DrawPanel(in Rect area)
 		{
 			var height = GetContentHeight();
 
@@ -21,19 +31,43 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 
 			_scroll = GUI.BeginScrollView(area, _scroll, scrollRect);
-
-			DrawScrollContent(scrollRect);
-
+			OnDrawContent(scrollRect);
 			GUI.EndScrollView();
 		}
 
-		protected virtual void DrawScrollContent(Rect area)
+		protected virtual float GetContentWidth()
+		{
+			return 0f;
+		}
+
+		protected virtual void OnDrawContent(Rect area)
 		{
 			
 		}
-		
-		protected abstract float GetContentHeight();
+
+		protected virtual float GetContentHeight() => 0f;
 
 		private Vector2 _scroll;
+	}
+}
+
+
+namespace Smidgenomics.Unity.UAI.Editor
+{
+	using UnityEditor;
+	using UnityEngine;
+
+	internal sealed class UAIMonitorPanel_Legend : UAIMonitorPanel
+	{
+		protected override void OnDrawContent(Rect area)
+		{
+			
+		}
+
+		protected override float GetContentHeight()
+		{
+			return 0f;
+		}
+
 	}
 }

@@ -2,23 +2,23 @@
 
 // ReSharper disable All
 
-namespace Smidgenomics.Unity.UAI
-{
-	using System;
-
-	[AttributeUsage(AttributeTargets.Field)]
-	public sealed class SOArrayColumn : Attribute
-	{
-		public float width { get; }
-		public bool label { get; }
-
-		public SOArrayColumn(float width = 0, bool label = false)
-		{
-			this.width = width;
-			this.label = label;
-		}
-	}
-}
+// namespace Smidgenomics.Unity.UAI
+// {
+// 	using System;
+//
+// 	[AttributeUsage(AttributeTargets.Field)]
+// 	public sealed class SOArrayColumn : Attribute
+// 	{
+// 		public float width { get; }
+// 		public bool label { get; }
+//
+// 		public SOArrayColumn(float width = 0, bool label = false)
+// 		{
+// 			this.width = width;
+// 			this.label = label;
+// 		}
+// 	}
+// }
 
 namespace Smidgenomics.Unity.UAI
 {

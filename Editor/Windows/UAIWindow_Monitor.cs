@@ -1,6 +1,5 @@
 // smidgens @ github
 
-
 // ReSharper disable ArrangeObjectCreationWhenTypeNotEvident
 // ReSharper disable StringLastIndexOfIsCultureSpecific.1
 namespace Smidgenomics.Unity.UAI.Editor
@@ -14,7 +13,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 	{
 		public static void Open()
 		{
-			var w = GetWindow<UAIWindow_Monitor>(WIN_DOCK);
+			var w = GetWindow<UAIWindow_Monitor>(_WIN_DOCK);
 			w.Show();
 		}
 
@@ -33,17 +32,24 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private enum EPanelFloat { Left, Right }
 
-		private enum EBrainTab { Actions, Timeline }
+		[Flags]
+		private enum EBrainTab
+		{
+			Actions = 1,
+			Timeline = 2,
+			Stats = 4,
+		}
 
 		[Flags]
-		private enum EActivePanel
+		private enum EInfoPanel
 		{
 			Legend = 1,
 			Memory = 2,
 			Considerations = 4,
+			Services = 8,
 		}
 
-		private static readonly Type[] WIN_DOCK =
+		private static readonly Type[] _WIN_DOCK =
 		{
 			Type.GetType("UnityEditor.ProjectBrowser, UnityEditor.CoreModule")
 		};
@@ -54,31 +60,24 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private static readonly float _W_PANEL_BRAINS = EditorGUIUtility.singleLineHeight * 7;
 		private static readonly float _W_PANEL_MEMORY = EditorGUIUtility.singleLineHeight * 7;
 		private static readonly float _W_PANEL_CONSIDERATIONS = EditorGUIUtility.singleLineHeight * 10;
+		private static readonly float _W_PANEL_SERVICES = EditorGUIUtility.singleLineHeight * 7;
 		private static readonly float _W_TIMER_WIDTH = EditorGUIUtility.singleLineHeight * 5;
 
 		private const int _W_SEPARATOR = 1;
 		private static readonly Color _SEPARATOR_COLOR = Color.black * 0.3f;
 
-		[SerializeField] private bool _showLegend;
-		[SerializeField] private bool _showMemory;
-		[SerializeField] private bool _showConsiderations = true;
 		[SerializeField] private EBrainTab _tabBrain;
+		
+		private float _cachedLegendWidth;
+
+		private readonly PrefsHandle_Int _prefsVisibleInfos = new ($"UAIEditor.panels");
+		private readonly PrefsHandle_Int _prefsVisibleTab = new ($"UAIEditor.tab");
+
 		private UAIBrain _currentBrain;
-		private GUIContent _tabContentMemory;
-		private GUIContent _tabContentLegend;
-		private GUIContent _tabContentConsiderations;
-		private GUIContent _tabLabelTimeline;
-		private GUIContent _tabLabelActions;
 		private readonly Dictionary<string, Texture2D> _loadedTextures = new();
 		private Vector2 _scrollBrainList;
-		private Vector2 _scrollActivityView;
-		private Vector2 _scrollLegend;
-		private Vector2 _scrollMemory;
-		private Vector2 _scrollConsiderations;
-
 		private UAIEditorAtlas _iconAtlas;
 		private UAIEditorStyles _editorStyles;
-		private float _legendWidth;
 
 		private readonly (EUAIAtlasIcon, string)[] _legendItems =
 		{
@@ -92,6 +91,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			(EUAIAtlasIcon.Action, "Action"),
 			(EUAIAtlasIcon.Bucket, "Bucket"),
 			(EUAIAtlasIcon.Consideration, "Consideration"),
+			(EUAIAtlasIcon.Service, "Service"),
 			(EUAIAtlasIcon.SelectRandom, "Random"),
 			(EUAIAtlasIcon.SelectTop, "Top"),
 			(EUAIAtlasIcon.SelectTopPercentage, "Top %"),
@@ -113,12 +113,36 @@ namespace Smidgenomics.Unity.UAI.Editor
 			};
 		}
 
-		private UAIAtlasIcon GetAtlasIcon(EUAIAtlasIcon icon) => _iconAtlas.GetIcon(icon);
+		private ref readonly UAIAtlasIcon GetAtlasIcon(EUAIAtlasIcon icon) => ref _iconAtlas.GetIcon(icon);
 
 		private static T LoadFromGUID<T>(string guid) where T : UnityEngine.Object
 		{
 			return AssetDatabase.LoadAssetAtPath<T>(AssetDatabase.GUIDToAssetPath(guid));
 		}
+
+		private static bool HasBitFlag(int mask, int flag) => (mask & flag) != 0;
+
+		private static int ToggleBitflag(int mask, int flag)
+		{
+			return HasBitFlag(mask, flag) ? mask & ~flag : mask | flag;
+		}
+
+		private class WInfoPanel
+		{
+			public GUIContent label;
+			public Func<Vector2> sizeFn;
+			public Action<Rect> bgDrawFn;
+			public Action<Rect> drawFn;
+			public EPanelFloat tabFloat;
+			public Vector2 scroll;
+			public bool fixScrollClip;
+			public int visibilityFlag;
+			public PrefsHandle_Int flagPrefs;
+			public EUAIAtlasIcon icon = EUAIAtlasIcon.None;
+		}
+
+		private WInfoPanel[] _infoPanels = Array.Empty<WInfoPanel>();
+		private WInfoPanel[] _mainPanels = Array.Empty<WInfoPanel>();
 
 		private void OnEnable()
 		{
@@ -127,31 +151,159 @@ namespace Smidgenomics.Unity.UAI.Editor
 			titleContent = GetWindowTitle();
 
 			_currentBrain = null;
-			_tabContentMemory = new GUIContent
-			{
-				image = EditorGUIUtility.IconContent("d_PreMatCylinder")?.image,
-				tooltip = "Agent memory"
-			};
-			_tabContentConsiderations = new GUIContent
-			{
-				image = EditorGUIUtility.IconContent("Exposure")?.image,
-				tooltip = "Current considerations"
-			};
 			
-			_tabContentLegend = new GUIContent
+			// Note:
+			// this panel init is kind of horrible, but having things in one place
+			// like this is a bit easier for now and to refactor later
+			_mainPanels = new WInfoPanel[]
 			{
-				image = EditorGUIUtility.IconContent("_Help")?.image,
-				tooltip = "Legend"
+				new()
+				{
+					label = new GUIContent("Actions"),
+					visibilityFlag = (int)EBrainTab.Actions,
+					flagPrefs = _prefsVisibleTab,
+					bgDrawFn = DrawPanel_Actions,
+					sizeFn = () => new Vector2(0f, GetPanelHeight_Actions()),
+					icon = EUAIAtlasIcon.Action,
+				},
+				new()
+				{
+					label = new GUIContent("Timeline"),
+					visibilityFlag = (int)EBrainTab.Timeline,
+					flagPrefs = _prefsVisibleTab,
+					bgDrawFn = DrawPanel_Timeline,
+					icon = EUAIAtlasIcon.Timeline,
+				},
+				new()
+				{
+					label = new GUIContent("Stats"),
+					visibilityFlag = (int)EBrainTab.Stats,
+					flagPrefs = _prefsVisibleTab,
+					bgDrawFn = DrawPanel_Stats,
+					icon = EUAIAtlasIcon.Stats,
+					sizeFn = () =>
+					{
+						if (_currentBrain == null)
+						{
+							return default;
+						}
+						var rows = 1 + _currentBrain.TotalActionCount;
+
+						var rowHeight = _editorStyles.ActionLabelHeight + _W_SEPARATOR;
+						var height = rows * rowHeight;
+						return new Vector2(0f, height);
+					},
+				},
 			};
 
-			_tabLabelTimeline = new GUIContent("Timeline")
+			_infoPanels = new WInfoPanel[]
 			{
-				// image = _defaultTabIcon
-			};
+				// LEGEND
+				new()
+				{
+					label = new GUIContent
+					{
+						image = EditorGUIUtility.FindTexture("_Help"),
+						tooltip = "Legend"
+					},
+					visibilityFlag = (int)EInfoPanel.Legend,
+					bgDrawFn = DrawPanel_Legend,
+					sizeFn = () => new Vector2(GetPanelWidth_Legend(), _editorStyles.LegendLabelHeight * _legendItems.Length),
+					fixScrollClip = true,
+					tabFloat = EPanelFloat.Right,
+					flagPrefs = _prefsVisibleInfos,
+				},
+				// SERVICES
+				new()
+				{
+					label = new GUIContent
+					{
+						image = EditorGUIUtility.IconContent("DotFrameDotted")?.image,
+						tooltip = "Services"
+					},
+					visibilityFlag = (int)EInfoPanel.Services,
+					bgDrawFn = DrawPanel_Services,
+					drawFn = r =>
+					{
+						if (_currentBrain == null || _currentBrain.GetActiveServiceCount() == 0)
+						{
+							EditorGUI.LabelField(r, "No services active", EditorStyles.centeredGreyMiniLabel);
+						}
+					},
+					sizeFn = () =>
+					{
+						var height = _currentBrain != null
+						? _editorStyles.LegendLabelHeight * _currentBrain.GetActiveServiceCount()
+						: 0;
+						return new Vector2(_W_PANEL_SERVICES, height);
+					},
+					tabFloat = EPanelFloat.Right,
+					flagPrefs = _prefsVisibleInfos,
+				},
+				// MEMORY
+				new()
+				{
+					label = new GUIContent
+					{
+						image = EditorGUIUtility.IconContent("d_PreMatCylinder")?.image,
+						tooltip = "Agent Memory"
+					},
+					visibilityFlag = (int)EInfoPanel.Memory,
+					bgDrawFn = DrawPanel_Memory,
+					drawFn = r =>
+					{
+						if (_currentBrain == null || _currentBrain.GetMemory().ValueCount == 0)
+						{
+							EditorGUI.LabelField(r, "Nothing in memory", EditorStyles.centeredGreyMiniLabel);
+						}
+					},
+					sizeFn = () =>
+					{
+						if (_currentBrain == null)
+						{
+							return new Vector2(_W_PANEL_MEMORY, 0f);
+						}
+						var lineHeight = EditorGUIUtility.singleLineHeight;
+						var itemHeight = lineHeight * 2; // name + value
+						var totalHeight = itemHeight * _currentBrain.GetMemory().ValueCount;
+						return new Vector2(_W_PANEL_MEMORY, totalHeight);
+					},
+					
+					tabFloat = EPanelFloat.Right,
+					flagPrefs = _prefsVisibleInfos,
+				},
+				// CONSIDERATIONS
+				new()
+				{
+					label = new GUIContent
+					{
+						image = EditorGUIUtility.IconContent("Exposure")?.image,
+						tooltip = "Active Considerations"
+					},
+					visibilityFlag = (int)EInfoPanel.Considerations,
+					bgDrawFn = DrawPanel_Considerations,
+					drawFn = r =>
+					{
+						if (_currentBrain == null || _currentBrain.GetActiveConsiderationCount() == 0)
+						{
+							EditorGUI.LabelField(r, "No considerations", EditorStyles.centeredGreyMiniLabel);
+						}
+					},
+					sizeFn = () =>
+					{
+						if (_currentBrain == null)
+						{
+							return new Vector2(_W_PANEL_CONSIDERATIONS, 0f);
+						}
+						var rowCount = _currentBrain.GetActiveConsiderationCount() + 2;
+						var height = rowCount * _editorStyles.HeaderLabelHeight;
+						return new Vector2(_W_PANEL_CONSIDERATIONS, height);
 
-			_tabLabelActions = new GUIContent("Actions")
-			{
-				// image = _defaultTabIcon
+					},
+					tabFloat = EPanelFloat.Right,
+					flagPrefs = _prefsVisibleInfos,
+				},
+				
 			};
 
 			Application.quitting -= OnQuittingApp;
@@ -170,117 +322,172 @@ namespace Smidgenomics.Unity.UAI.Editor
 			Repaint();
 		}
 
-		private void OnGUI()
+		private string _tooltip;
+		private Vector2 _tpPos;
+		private Vector2 _tpSize;
+		private GUIStyle _tpStyle;
+
+		private bool CheckMouseInLocalRect(Rect localRect)
 		{
-			_editorStyles ??= UAIEditorStyles.CreateInstance();
-
-			if (Mathf.Approximately(0f, _legendWidth))
-			{
-				_legendWidth = GetLegendPanelWidth();
-			}
-
-			var wRect = new Rect(0f, 0f, position.width, position.height);
-
-			DrawToolbar(wRect.SliceTop(_editorStyles.ToolbarHeight));
-			wRect.SliceTop(_W_SEPARATOR);
-
-			DrawPanel_BrainList(wRect.SliceLeft(_W_PANEL_BRAINS));
-
-			if (_showLegend)
-			{
-				DrawPanel_Legend(wRect.SliceRight(_legendWidth + _editorStyles.ScrollbarWidth));
-			}
-
-			if (_showMemory)
-			{
-				DrawPanel_Memory(wRect.SliceRight(_W_PANEL_MEMORY + _editorStyles.ScrollbarWidth));
-			}
-
-			if (_showConsiderations)
-			{
-				DrawPanel_Considerations(wRect.SliceRight(_W_PANEL_CONSIDERATIONS + _editorStyles.ScrollbarWidth));
-			}
-
-			DrawBrainView(wRect);
+			var mousePos = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
+			return localRect.Contains(Event.current.mousePosition);
 		}
 
-		private static void PulseRect(in Rect rect, float startTime)
+		private void SetTooltip(Vector2 mousePos, string label)
 		{
-			var color = EditorGUIUtility.isProSkin
-			? Color.white
-			: Color.black;
-			color.a = 0.3f;
-			float duration = 0.4f;
-			var endTime = startTime + duration;
-			if (Time.time > endTime)
+			mousePos = GUIUtility.GUIToScreenPoint(mousePos);
+			mousePos.y -= 25;
+			
+			if (_tpStyle == null)
+			{
+				_tpStyle = new GUIStyle(GUI.skin.label);
+			}
+
+			if (!position.Contains(mousePos))
 			{
 				return;
 			}
-			var t = Mathf.Clamp01((endTime - Time.time) / duration);
-			t = Mathf.PingPong(t, 2) / 0.5f;
 
-			EditorGUI.DrawRect(rect, Color.Lerp(Color.clear, color, t));
+			var wPos = position.position;
+			var wSize = position.size;
 
+			_tooltip = label;
+			_tpSize = _tpStyle.CalcSize(new GUIContent(label));
+
+			_tpPos = new Vector2(mousePos.x - wPos.x, mousePos.y - wPos.y);
+	
+			_tpPos.x = Mathf.Clamp(_tpPos.x, 0, wSize.x - _tpSize.x);
+			_tpPos.y = Mathf.Clamp(_tpPos.y, 0, wSize.y - _tpSize.y);
 		}
 
-		private void DrawToolbar(Rect r)
-		{
-			GUI.Box(r, GUIContent.none, EditorStyles.toolbar);
-			_showLegend = DoToolbarButton(ref r, _tabContentLegend, _showLegend, EPanelFloat.Right);
-			_showMemory = DoToolbarButton(ref r, _tabContentMemory, _showMemory, EPanelFloat.Right);
-			_showConsiderations = DoToolbarButton(ref r, _tabContentConsiderations, _showConsiderations, EPanelFloat.Right);
-		}
 
-		private float GetLegendPanelWidth()
+		private void OnGUI()
 		{
-			var longestLabel = "";
-			foreach (var (_, label) in _legendItems)
+			_editorStyles ??= UAIEditorStyles.CreateInstance();
+			
+			// SetTooltip(Event.current.mousePosition, "Test");
+			var wRect = new Rect(0f, 0f, position.width, position.height);
+
+			DrawPanelTabs(ref wRect, _infoPanels);
+			
+			wRect.SliceTop(_W_SEPARATOR);
+
+			DrawPanel_BrainList(wRect.SliceLeft(_W_PANEL_BRAINS));
+			EditorGUI.DrawRect(wRect.SliceLeft(_W_SEPARATOR), _SEPARATOR_COLOR);
+
+			DrawInfoPanels(ref wRect);
+			DrawBrainView(wRect);
+
+			if (!string.IsNullOrEmpty(_tooltip))
 			{
-				if (label.Length > longestLabel.Length)
+				var tpRect = new Rect(_tpPos, _tpSize);
+				EditorGUI.DrawRect(tpRect, Color.black * 0.7f);
+				EditorGUI.LabelField(tpRect, _tooltip, GUI.skin.label);
+				_tooltip = null;
+				
+			}
+
+
+		}
+
+		private void DrawInfoPanels(ref Rect area)
+		{
+			for (int i = 0; i < _infoPanels.Length; i++)
+			{
+				ref var panel = ref _infoPanels[i];
+
+				if (!HasBitFlag(panel.flagPrefs.Value, panel.visibilityFlag))
 				{
-					longestLabel = label;
+					continue;
+				}
+
+				var size = panel.sizeFn.Invoke();
+				var width = size.x + _editorStyles.ScrollbarWidth;
+
+				var innerWidth = width;
+
+				if (panel.fixScrollClip)
+				{
+					innerWidth -= _editorStyles.ScrollbarWidth;
+				}
+
+				var panelArea = panel.tabFloat == EPanelFloat.Left
+				? area.SliceLeft(width)
+				: area.SliceRight(width);
+				DrawVerticalSeparator(ref area, panel.tabFloat);
+
+				// background etc
+				panel.drawFn?.Invoke(panelArea);
+
+				var height = Mathf.Approximately(size.y, 0f) ? area.height : size.y;
+
+				var scrollRect = new Rect(0, 0, innerWidth, height);
+
+				if (!panel.fixScrollClip && scrollRect.height > area.height)
+				{
+					scrollRect.width -= _editorStyles.ScrollbarWidth;
+				}
+				panel.scroll = GUI.BeginScrollView(panelArea, panel.scroll, scrollRect);
+				panel.bgDrawFn?.Invoke(scrollRect);
+				GUI.EndScrollView();
+
+			}
+		}
+
+		private void DrawPanelTabs(ref Rect r, WInfoPanel[] panels, bool multiFlag = true)
+		{
+			var tbRect = r.SliceTop(_editorStyles.ToolbarHeight);
+			GUI.Box(tbRect, GUIContent.none, EditorStyles.toolbar);
+			for (var i = 0; i < panels.Length; i++)
+			{
+				ref readonly var panel = ref panels[i];
+				DoPanelToggle(ref tbRect, panel, multiFlag);
+			}
+		}
+
+		private void DoPanelToggle(ref Rect r, in WInfoPanel panel, bool multiFlag = true)
+		{
+			var enabled = HasBitFlag(panel.flagPrefs.Value, panel.visibilityFlag);
+			if (DoToolbarButton(ref r, panel, enabled))
+			{
+				if (!multiFlag)
+				{
+					panel.flagPrefs.Value = panel.visibilityFlag;
+				}
+				else
+				{
+					panel.flagPrefs.Value = ToggleBitflag(panel.flagPrefs.Value, panel.visibilityFlag);
 				}
 			}
-			var size = _editorStyles.LegendLabelStyle.CalcSize(new GUIContent(longestLabel));
-			return size.x + size.y;
 		}
 
-		private void DrawBrainTabs(ref Rect r)
+		private bool DoToolbarButton(ref Rect toolbarRect, in WInfoPanel panel, bool enabled)
 		{
-			GUI.Box(r, GUIContent.none, EditorStyles.toolbar);
-			
-			var tbRect = r.SliceTop(_editorStyles.ToolbarHeight);
+			var showIcon = panel.icon != EUAIAtlasIcon.None;
 
-			if (DoToolbarButton(ref tbRect, _tabLabelActions, _tabBrain == EBrainTab.Actions))
-			{
-				_tabBrain = EBrainTab.Actions;
-			}
+			var style = showIcon ? _editorStyles.ToolbarIconButtonStyle : _editorStyles.ToolbarButtonStyle;
 
-			if (DoToolbarButton(ref tbRect, _tabLabelTimeline, _tabBrain == EBrainTab.Timeline))
-			{
-				_tabBrain = EBrainTab.Timeline;
-			}
-		}
+			var size = style.CalcSize(panel.label);
 
-		private bool DoToolbarButton(ref Rect toolbarRect, GUIContent label, bool enabled, EPanelFloat pFloat = EPanelFloat.Left)
-		{
-			var style = _editorStyles.ToolbarButtonStyle;
-
-			var size = style.CalcSize(label);
-
-			var btnRect = pFloat == EPanelFloat.Right
+			var btnRect = panel.tabFloat == EPanelFloat.Right
 			? toolbarRect.SliceRight(size.x)
 			: toolbarRect.SliceLeft(size.x);
 
-			if (GUI.Button(btnRect, label, style))
+			var pressed = GUI.Button(btnRect, panel.label, style);
+
+			if (showIcon)
 			{
-				enabled = !enabled;
+				var iconRect = btnRect;
+				iconRect = iconRect.SliceLeft(btnRect.height).Resized(-btnRect.height * 0.2f);
+				
+				_iconAtlas.GetIcon(panel.icon).Draw(iconRect, UAIEditorStyles.GetIconColor() * 0.8f);
 			}
+
 			if (enabled)
 			{
 				EditorGUI.DrawRect(btnRect.Resized(-1f), Color.white * 0.4f);
 			}
-			return enabled;
+			return pressed;
 		}
 
 		private Texture2D GetCachedTextureByGUID(string texGUID)
@@ -348,47 +555,199 @@ namespace Smidgenomics.Unity.UAI.Editor
 				return;
 			}
 			
-			DrawBrainTabs(ref r);
-
-			if (_tabBrain == EBrainTab.Actions)
-			{
-				DrawBrainActions(r);
-			}
-			else if (_tabBrain == EBrainTab.Timeline)
-			{
-				DrawBrainTimeline(r);
-			}
-
-			var footerRect = r.SliceBottom(_editorStyles.ToolbarHeight * 1f);
-			DrawBrainFooter(footerRect);
-		}
-
-		private void DrawBrainActions(Rect areaRect)
-		{
-			var activityHeight = GetCurrentBrainActivityHeight();
-			var scrollWidth = GUI.skin.verticalScrollbar.CalcSize(GUIContent.none).x;
-			var activityWidth = areaRect.width;
-
-			if (activityHeight > areaRect.height)
-			{
-				activityWidth -= scrollWidth;
-			}
-
-			var activityRect = new Rect(Vector2.zero, new Vector2(activityWidth, activityHeight));
-
-			_scrollActivityView = GUI.BeginScrollView(areaRect, _scrollActivityView, activityRect);
+			DrawPanelTabs(ref r, _mainPanels, false);
 			
+			var footerRect = r.SliceBottom(_editorStyles.ToolbarHeight);
+			
+			DrawBrainFooter(footerRect);
+
+			for (int i = 0; i < _mainPanels.Length; i++)
+			{
+				ref var panel = ref _mainPanels[i];
+
+				if (panel.bgDrawFn == null)
+				{
+					continue;
+				}
+
+				if (!HasBitFlag(panel.flagPrefs.Value, panel.visibilityFlag))
+				{
+					continue;
+				}
+
+				var size = panel.sizeFn?.Invoke() ?? r.size;
+
+				panel.drawFn?.Invoke(r);
+
+				var height = Mathf.Approximately(size.y, 0f) ? r.height : size.y;
+	
+				var scrollRect = new Rect(0, 0, r.width, height);
+
+				if (scrollRect.height > r.height)
+				{
+					scrollRect.width -= _editorStyles.ScrollbarWidth;
+				}
+				panel.scroll = GUI.BeginScrollView(r, panel.scroll, scrollRect);
+				panel.bgDrawFn.Invoke(scrollRect);
+				GUI.EndScrollView();
+
+				break;
+			}
+		}
+		
+		private void DrawPanel_Actions(Rect scrollRect)
+		{
 			_currentBrain.ForEachBucket((in UAIBrain.BucketRecord br) =>
 			{
-				DrawBucketActivity(ref activityRect, br);
+				DrawBucketActivity(ref scrollRect, br);
 			});
-
-			GUI.EndScrollView();
 		}
 
-		private void DrawBrainTimeline(Rect area)
+		private void DrawPanel_Timeline(Rect area)
 		{
 			EditorGUI.LabelField(area, "Not implemented...yet", EditorStyles.centeredGreyMiniLabel);
+		}
+
+		private (GUIContent, UAIDelegates.ActionRefRO<Rect, UAIBrain.ActionRecord>)[] _actionStatColumns;
+		
+		private void DrawPanel_Stats(Rect area)
+		{
+			// this is a mess...
+			if (_actionStatColumns == null)
+			{
+				_actionStatColumns = new (GUIContent, UAIDelegates.ActionRefRO<Rect, UAIBrain.ActionRecord>)[]
+				{
+					
+					(new GUIContent("Select %  "), (in Rect pos, in UAIBrain.ActionRecord action) =>
+					{
+						var ratio = _currentBrain.TotalActivations > 0
+						? (float)(action.activations) / _currentBrain.TotalActivations
+						: 0f;
+						
+						var label = $"{ratio * 100f:0}%";
+
+						var barRect = pos.Resized(-2f);
+						barRect.width -= 2f;
+						barRect.center = pos.center;
+						
+						EditorGUI.ProgressBar(barRect, ratio, "");
+						EditorGUI.LabelField(barRect, label, EditorStyles.centeredGreyMiniLabel);
+						
+					}),
+					(new GUIContent("Avg. Score  "), (in Rect pos, in UAIBrain.ActionRecord action) =>
+					{
+						var label = action.activations > 0
+						? FormatScoreLabel((float)(action.scoreSum / action.activations))
+						: "-";
+						EditorGUI.LabelField(pos, label, _editorStyles.ActionLabelStyle);
+					}),
+					(new GUIContent("Last Score  "), (in Rect pos, in UAIBrain.ActionRecord action) =>
+					{
+						var label = action.activations > 0
+						? FormatScoreLabel(action.score)
+						: "-";
+						EditorGUI.LabelField(pos, label, _editorStyles.ActionLabelStyle);
+					}),
+					(new GUIContent("Activations  "), (in Rect pos, in UAIBrain.ActionRecord action) =>
+					{
+						var label = action.activations > 0
+						? action.activations.ToString()
+						: "-";
+						EditorGUI.LabelField(pos, label, _editorStyles.ActionLabelStyle);
+					}),
+					(new GUIContent("Total Time  "), (in Rect pos, in UAIBrain.ActionRecord action) =>
+					{
+						var time = action.GetTotalActiveTime();
+
+						var label = "-";
+
+						if (!Mathf.Approximately(time, 0f))
+						{
+							if (time > 60f)
+							{
+								label = $"{(time / 60f):0}m {(time % 60f):0}s";
+							}
+							else
+							{
+								label = $"{time:0.0}s";
+							}
+						}
+						EditorGUI.LabelField(pos, label, _editorStyles.ActionLabelStyle);
+
+						// if (CheckMouseInLocalRect(pos))
+						// {
+						// 	SetTooltip(Event.current.mousePosition, "Total time running action");
+						// }
+					}),
+					(new GUIContent("Weight  "), (in Rect pos, in UAIBrain.ActionRecord action) =>
+					{
+						EditorGUI.LabelField(pos, $"{action.template._weight:0.0}", _editorStyles.ActionLabelStyle);
+					}),
+					
+				};
+			}
+			
+			
+			var rowHeight = _editorStyles.ActionLabelHeight;
+
+			var rColor = _SEPARATOR_COLOR * 0.25f;
+			var hColor = _SEPARATOR_COLOR * 0.7f;
+
+			var rowStyle = _editorStyles.ActionLabelStyle;
+
+			var headerRect = area.SliceTop(rowHeight);
+			area.SliceTop(_W_SEPARATOR);
+			
+			EditorGUI.DrawRect(headerRect, hColor);
+			
+			foreach (var (colLabel, drawFn) in _actionStatColumns)
+			{
+				var colWidth = rowStyle.CalcSize(colLabel).x;
+				EditorGUI.LabelField(headerRect.SliceRight(colWidth), colLabel, rowStyle);
+			}
+
+			var aIcon = GetAtlasIcon(EUAIAtlasIcon.Action);
+
+			
+			EditorGUI.LabelField(headerRect, "Action", rowStyle);
+
+			_currentBrain.ForEachBucket((in UAIBrain.BucketRecord bucket) =>
+			{
+				var bLabel = bucket.label;
+				_currentBrain.ForEachActionInBucket(bucket.ID, (in UAIBrain.ActionRecord action) =>
+				{
+					var aRow = area.SliceTop(rowHeight);
+
+					var overlayRect = aRow;
+	
+					EditorGUI.DrawRect(aRow, rColor);
+
+					var label = $"{bLabel} / {action.template.Name}";
+
+					foreach (var (colLabel, drawFn) in _actionStatColumns)
+					{
+						var colWidth = rowStyle.CalcSize(colLabel).x;
+						drawFn.Invoke(aRow.SliceRight(colWidth), action);
+					}
+					
+					var iconRect = aRow.SliceLeft(headerRect.height).Resized(-headerRect.height * 0.15f);
+
+					var active = action.ID == _currentBrain.CurrentActionID;
+
+					aIcon.Draw(iconRect, UAIEditorStyles.GetIconColor() * (active ? 1f : 0.5f));
+
+					EditorGUI.LabelField(aRow, label, rowStyle);
+
+					if (active)
+					{
+						var c = Color.white;
+						c.a = 0.1f;
+						EditorGUI.DrawRect(overlayRect, c);
+					}
+					
+					area.SliceTop(_W_SEPARATOR);
+				}, false);
+			}, false);
 		}
 
 		private static string FormatScoreLabel(float score)
@@ -417,7 +776,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			EditorGUI.DrawRect(bucketRow, hColor);
 
 			var bIcon = bucketRow.SliceLeft(bucketRow.height).Resized(-bucketRow.height * 0.2f);
-			
+
 			GetAtlasIcon(EUAIAtlasIcon.Bucket).Draw(bIcon, UAIEditorStyles.GetIconColor());
 
 			var bScoreRect = bucketRow.SliceRight(_editorStyles.ScoreLabelSize.x);
@@ -429,11 +788,9 @@ namespace Smidgenomics.Unity.UAI.Editor
 			{
 				_currentBrain.ForEachActionInBucket(br.ID, (in UAIBrain.ActionRecord ar) =>
 				{
-					// var actionRow = r.SliceTop(aRowHeight);
 					DrawActionRow(r.SliceTop(aRowHeight), ar);
 				});
-				
-				PulseRect(pulseRect, br.lastActivation);
+				UAIEditorGUI.TimedPulse(pulseRect, br.lastActivation);
 			}
 			else
 			{
@@ -448,12 +805,12 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 				}
 			}
-			
-			
-			
+
 			EditorGUI.DrawRect(r.SliceTop(_W_SEPARATOR), _SEPARATOR_COLOR);
 			rr = r;
 		}
+		
+		
 
 		private void DrawActionRow(Rect actionRow, in UAIBrain.ActionRecord ar)
 		{
@@ -469,28 +826,22 @@ namespace Smidgenomics.Unity.UAI.Editor
 			var scoreLabel = FormatScoreLabel(ar.SustainedScore());
 			EditorGUI.LabelField(scoreRect, scoreLabel, _editorStyles.ScoreLabelStyle);
 	
-			var stateIcon = GetActionIcon(ar, _currentBrain);
+			var stateIcon = GetActionStatusIcon(ar, _currentBrain);
 			stateIcon.Draw(iconRect.Resized(-iconRect.height * 0.15f), UAIEditorStyles.GetIconColor());
 
 			if (ar.OnCooldown())
 			{
-				var timeLabel = GetFormattedTimestamp(ar.cooldownEnd - Time.time);
+				var timeLabel = UAIEditorGUI.GetFormattedDuration(ar.cooldownEnd - Time.time);
 				GUI.Label(cooldownRect, timeLabel, _editorStyles.CooldownLabelStyle);
 			}
 			if (ar.ID == _currentBrain.CurrentActionID)
 			{
-				PulseRect(cachedRow, ar.lastActivation);
+				UAIEditorGUI.TimedPulse(cachedRow, ar.lastActivation);
 			}
-			
 		}
 
-		private static string GetFormattedTimestamp(float timeSeconds)
-		{
-			int val = timeSeconds < 1 ? (int)(timeSeconds * 1000) : (int)timeSeconds;
-			return val + (timeSeconds < 1 ? "ms" : "s");
-		}
 
-		private UAIAtlasIcon GetActionIcon(in UAIBrain.ActionRecord action, UAIBrain aiBrain)
+		private UAIAtlasIcon GetActionStatusIcon(in UAIBrain.ActionRecord action, UAIBrain aiBrain)
 		{
 			if (aiBrain.CurrentActionID == action.ID)
 			{
@@ -515,11 +866,10 @@ namespace Smidgenomics.Unity.UAI.Editor
 			: GetAtlasIcon(EUAIAtlasIcon.Selectable);
 		}
 
-		private float GetCurrentBrainActivityHeight()
+		private float GetPanelHeight_Actions()
 		{
 			var bucketCount = _currentBrain.BucketCount;
 			var actionCount = _currentBrain.GetCurrentBucketActionCount();
-			// we're still exiting action in bucket
 			
 			ref readonly var currentAction = ref _currentBrain.GetCurrentActionRef();
 
@@ -531,23 +881,60 @@ namespace Smidgenomics.Unity.UAI.Editor
 			bucketCount * _editorStyles.BucketLabelHeight
 			+ actionCount * _editorStyles.ActionLabelHeight;
 		}
+
+		private static void DrawVerticalSeparator(ref Rect r, EPanelFloat dir = EPanelFloat.Left)
+		{
+			var sepRect = dir == EPanelFloat.Left
+			? r.SliceLeft(_W_SEPARATOR)
+			: r.SliceRight(_W_SEPARATOR);
+			EditorGUI.DrawRect(sepRect, _SEPARATOR_COLOR);
+		}
+
+		private void DrawPanel_Services(Rect r)
+		{
+			if (_currentBrain == null)
+			{
+				return;
+			}
+
+			ref readonly var currentBucket = ref _currentBrain.GetBucketRef(_currentBrain.CurrentBucketID);
+		
+			var serviceCount = currentBucket.services.Length;
+
+			var lineHeight = EditorGUIUtility.singleLineHeight;
+			var totalHeight = serviceCount * lineHeight;
+
+			var scrollRect = new Rect(0, 0, r.width, totalHeight);
+
+			if (totalHeight > r.height)
+			{
+				scrollRect.width -= _editorStyles.ScrollbarWidth;
+			}
+
+			foreach (var s in currentBucket.services)
+			{
+				var rowRect = scrollRect.SliceTop(lineHeight);
+				var iconRect = rowRect.SliceLeft(rowRect.height).Resized(-rowRect.height * 0.2f);
+				
+				EditorGUI.LabelField(rowRect, s.Name, EditorStyles.miniLabel);
+				GetAtlasIcon(EUAIAtlasIcon.Service).Draw(iconRect);
+
+			}
+		}
 		
 		private void DrawPanel_BrainList(Rect r)
 		{
-			var sepRect = r;
-			sepRect = sepRect.SliceRight(_W_SEPARATOR * 1.5f);
-
 			var manager = UAIManager._instance;
 			if (!manager)
 			{
 				return;
 			}
 
-			var listBtnHeight = _editorStyles.ListButtonHeight;
-			var listHeight = listBtnHeight * manager.BrainCount;
+			var itemHeight = _editorStyles.ListButtonHeight + _W_SEPARATOR;
+			var listHeight = itemHeight * manager.BrainCount;
 			var scrollWidth = _editorStyles.ScrollbarWidth;
 			var listWidth = r.width;
-			
+
 			if (listHeight > r.height)
 			{
 				listWidth -= scrollWidth;
@@ -559,60 +946,29 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 			manager.ForEachTrackedBrain((in UAIManager.TrackedBrain tb) =>
 			{
-				if (_currentBrain == null)
+				_currentBrain ??= tb.AIBrain;
+
+				var btnRect = scrollRect.SliceTop(itemHeight);
+				var label = tb.AIBrain.GetContext().agent.gameObject.name;
+				var tEnabled = GUI.enabled;
+				GUI.enabled = _currentBrain != tb.AIBrain;
+				if (GUI.Button(btnRect, label, _editorStyles.ListButtonStyle))
 				{
 					_currentBrain = tb.AIBrain;
 				}
-				DrawBrainListButton(scrollRect.SliceTop(listBtnHeight), tb.AIBrain);
+				GUI.enabled = tEnabled;
+				EditorGUI.DrawRect(scrollRect.SliceTop(_W_SEPARATOR), _SEPARATOR_COLOR);
 			});
-
 			GUI.EndScrollView();
-			
-			EditorGUI.DrawRect(sepRect, _SEPARATOR_COLOR);
 		}
 
-		private void DrawBrainListButton(Rect r, UAIBrain brain)
+		private void DrawPanel_Considerations(Rect scrollRect)
 		{
-			var sepRect = r.SliceBottom(_W_SEPARATOR);
-
-			var label = brain.GetContext().agent.gameObject.name;
-
-			var tEnabled = GUI.enabled;
-			GUI.enabled = _currentBrain != brain;
-			if (GUI.Button(r, label, _editorStyles.ListButtonStyle))
-			{
-				_currentBrain = brain;
-			}
-
-			GUI.enabled = tEnabled;
-			
-			EditorGUI.DrawRect(sepRect, _SEPARATOR_COLOR);
-		}
-
-		private void DrawPanel_Considerations(Rect panelArea)
-		{
-			if (_currentBrain == null || !_currentBrain.IsRunning())
+			if (_currentBrain == null)
 			{
 				return;
 			}
-
-			EditorGUI.DrawRect(panelArea.SliceLeft(_W_SEPARATOR), _SEPARATOR_COLOR);
-
-			var rowCount = _currentBrain.GetActiveConsiderationCount() + 2;
-			
-			var totalHeight = rowCount * _editorStyles.HeaderLabelHeight;
-			var totalWidth = panelArea.width;
-
-			if (totalHeight > panelArea.height)
-			{
-				totalWidth -= _editorStyles.ScrollbarWidth;
-			}
-
-			var scrollRect = new Rect(0, 0, totalWidth, totalHeight);
-
 			var cLabelStyle = _editorStyles.HeaderLabelStyle;
-
-			_scrollConsiderations = GUI.BeginScrollView(panelArea, _scrollConsiderations, scrollRect);
 
 			if (_currentBrain.CurrentBucketID > -1)
 			{
@@ -644,8 +1000,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 					EditorGUI.LabelField(rowRect, FormatScoreLabel(info.score), _editorStyles.ScoreLabelStyle);
 				});
 			}
-
-			GUI.EndScrollView();
 		}
 
 		private void DrawHeaderLabel(Rect pos, string label, in UAIAtlasIcon icon)
@@ -658,35 +1012,22 @@ namespace Smidgenomics.Unity.UAI.Editor
 			EditorGUI.LabelField(pos, label, _editorStyles.HeaderLabelStyle);
 		}
 
-		private void DrawPanel_Memory(Rect panelArea)
+		private void DrawPanel_Memory(Rect scrollRect)
 		{
-			EditorGUI.DrawRect(panelArea.SliceLeft(_W_SEPARATOR), _SEPARATOR_COLOR);
-			
-			if (_currentBrain == null || !_currentBrain.IsRunning())
+			if (_currentBrain == null)
+			{
+				return;
+			}
+
+			var memory = _currentBrain.GetMemory();
+
+			if (memory.ValueCount == 0)
 			{
 				return;
 			}
 
 			var lineHeight = EditorGUIUtility.singleLineHeight;
-			var itemHeight = lineHeight * 2;
-			var memory = _currentBrain.GetMemory();
-			var totalHeight = itemHeight * memory.ValueCount;
 
-			if (memory.ValueCount == 0)
-			{
-				EditorGUI.LabelField(panelArea, "Memory empty", EditorStyles.centeredGreyMiniLabel);
-				return;
-			}
-
-			var scrollRect = new Rect(0, 0, panelArea.width, totalHeight);
-
-			if (totalHeight > panelArea.height)
-			{
-				scrollRect.width -= _editorStyles.ScrollbarWidth;
-			}
-
-			_scrollMemory = GUI.BeginScrollView(panelArea, _scrollMemory, scrollRect);
-	
 			memory.ForEachMemoryValue(((in UAIMemoryKey k, in UAIMemoryValue v) =>
 			{
 				var hRect = scrollRect.SliceTop(lineHeight);
@@ -695,18 +1036,29 @@ namespace Smidgenomics.Unity.UAI.Editor
 				EditorGUI.LabelField(hRect, hText, EditorStyles.miniLabel);
 				EditorGUI.LabelField(scrollRect.SliceTop(lineHeight), k.StringifyValue(v), EditorStyles.miniLabel);
 			}));
-			
-			GUI.EndScrollView();
 		}
 
-		private void DrawPanel_Legend(Rect panelArea)
+		private float GetPanelWidth_Legend()
 		{
-			var totalHeight = _editorStyles.LegendLabelHeight * _legendItems.Length;
-
-			var scrollRect = new Rect(Vector2.zero, new Vector2(_legendWidth, totalHeight));
-
-			_scrollLegend = GUI.BeginScrollView(panelArea, _scrollLegend, scrollRect);
-			
+			if (!Mathf.Approximately(_cachedLegendWidth, 0f))
+			{
+				return _cachedLegendWidth;
+			}
+			var longestLabel = string.Empty;
+			foreach (var (_, label) in _legendItems)
+			{
+				if (label.Length > longestLabel.Length)
+				{
+					longestLabel = label;
+				}
+			}
+			var size = _editorStyles.LegendLabelStyle.CalcSize(new GUIContent(longestLabel));
+			_cachedLegendWidth = size.x + size.y;
+			return _cachedLegendWidth;
+		}
+	
+		private void DrawPanel_Legend(Rect scrollRect)
+		{
 			foreach (var (iconKey, label) in _legendItems)
 			{
 				var rowRect = scrollRect.SliceTop(_editorStyles.LegendLabelHeight);
@@ -714,12 +1066,13 @@ namespace Smidgenomics.Unity.UAI.Editor
 				var icon = GetAtlasIcon(iconKey);
 				icon.Draw(icoRect, UAIEditorStyles.GetIconColor());
 				EditorGUI.LabelField(rowRect, label, _editorStyles.LegendLabelStyle);
+
+				if (CheckMouseInLocalRect(rowRect))
+				{
+					// SetTooltip(Event.current.mousePosition, label);
+				}
+				
 			}
-			
-			GUI.EndScrollView();
-			
-			EditorGUI.DrawRect(panelArea.SliceLeft(1f), _SEPARATOR_COLOR);
-			
 		}
 
 

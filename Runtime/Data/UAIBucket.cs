@@ -4,6 +4,7 @@
 
 namespace Smidgenomics.Unity.UAI
 {
+	using System;
 	using UnityEngine;
 	using System.Collections.Generic;
 	using UnityEngine.Serialization;
@@ -13,8 +14,6 @@ namespace Smidgenomics.Unity.UAI
 	/// </summary>
 	[CreateAssetMenu(menuName = UAIConstants.SO_CREATE_PATH + "Bucket")]
 	[ExcludeFromPreset]
-	[DrawAssetList("_actions")]
-	[DrawAssetList("_considerations")]
 	public sealed class UAIBucket : UAIScriptableObject
 	{
 		public string BucketName => !string.IsNullOrEmpty(_label) ? _label : name;
@@ -25,19 +24,22 @@ namespace Smidgenomics.Unity.UAI
 		[Min(0)]
 		[SerializeField] internal float _weight = 1;
 		
-		[Min(0.1f)]
+		[Min(UAIConstants.MIN_SCORING_RATE)]
 		[SerializeField] internal float _actionScoringRate = 1f;
 
-		[Min(0.1f)]
+		[Min(UAIConstants.MIN_SCORING_RATE)]
 		[SerializeField] internal float _bucketScoringRate = 5f;
+
+		[HideInInspector]
+		[SerializeField] internal UAIService[] _externalServices = Array.Empty<UAIService>();
 
 		[InstancedReference(defaultValueLabel = "Default")]
 		[SerializeReference]
 		internal UAISelector _actionSelector = new UAISelector_TopScore();
 		
 		[SerializeField] internal SOArray<UAIAction> _actions = new();
-
 		[SerializeField] internal SOArray<UAIConsideration> _bucketConsiderations = new();
+		[SerializeField] internal SOArray<UAIService> _services = new();
 
 	}
 }
@@ -60,28 +62,42 @@ namespace Smidgenomics.Unity.UAI.Editor
 	{
 		public override void OnInspectorGUI()
 		{
+			InitGUI();
+
 			serializedObject.UpdateIfRequiredOrScript();
-			EditorGUILayout.Space(5f);
+			EditorGUILayout.Space(EditorGUIUtility.singleLineHeight * 0.25f);
 			foreach (var prop in _props)
 			{
 				EditorGUILayout.PropertyField(prop);
 			}
 			serializedObject.ApplyModifiedProperties();
-			
-			EditorGUILayout.Space(5f);
-			_bucketConsiderations.OnListGUI();
-			serializedObject.ApplyModifiedProperties();
-			
-			EditorGUILayout.Space(5f);
-			_actionAssetList.OnListGUI();
-			serializedObject.ApplyModifiedProperties();
+			EditorGUILayout.Space(EditorGUIUtility.singleLineHeight * 0.5f);
+
+			DrawTabs();
 		}
 
 		private NestedAssetList<UAIAction> _actionAssetList = null;
 		private NestedAssetList<UAIConsideration> _bucketConsiderations = null;
+		private NestedAssetList<UAIService> _services = null;
 		private IEnumerable<SerializedProperty> _props = null;
 
-		private static string[] _extraFields =
+		// [SerializeField] private int _currentTab;
+
+		private struct DisplayTab
+		{
+			public GUIContent label;
+			public Action fn;
+			public Vector2 size;
+		}
+
+		private enum DisplayTabs
+		{
+			Considerations,
+			Actions,
+			Services
+		}
+
+		private static readonly string[] _EXTRA_FIELDS =
 		{
 			nameof(UAIBucket._label),
 			nameof(UAIBucket._comment),
@@ -89,14 +105,47 @@ namespace Smidgenomics.Unity.UAI.Editor
 			nameof(UAIBucket._actionSelector),
 			nameof(UAIBucket._actionScoringRate),
 			nameof(UAIBucket._bucketScoringRate),
+			// nameof(UAIBucket._externalServices),
 		};
 
+		private DisplayTab[] _displayTabs = Array.Empty<DisplayTab>();
+		private GUIContent[] _tabLabels = Array.Empty<GUIContent>();
+
+		private GUIStyle _tabBtnStyle;
+
+		private PrefsHandle_Int _prefsTab = new PrefsHandle_Int($"{nameof(UAIBucket)}.tab");
+		
 		private void OnEnable()
 		{
+			_displayTabs = new DisplayTab[]
+			{
+				new DisplayTab
+				{
+					label = new GUIContent("Actions"),
+					fn = DrawTab_Actions
+				},
+				new DisplayTab
+				{
+					label = new GUIContent("Considerations"),
+					fn = DrawTab_Considerations
+				},
+				new DisplayTab
+				{
+					label = new GUIContent("Services"),
+					fn = DrawTab_Services
+				},
+				
+			};
+
+			
+
+			_tabLabels = _displayTabs.Select(x => x.label).ToArray();
+			
 			var listFields = DrawAssetListAttribute.FindFieldsForType(target.GetType());
-			_props = _extraFields.Select(f => serializedObject.FindProperty(f)).Where(x => x != null);
+			_props = _EXTRA_FIELDS.Select(f => serializedObject.FindProperty(f)).Where(x => x != null);
 			_actionAssetList = CreateActionList(serializedObject.FindProperty(nameof(UAIBucket._actions)));
 			_bucketConsiderations = CreateConsiderationList(serializedObject.FindProperty(nameof(UAIBucket._bucketConsiderations)));
+			_services = CreateServiceList(serializedObject.FindProperty(nameof(UAIBucket._services)));
 		}
 
 		private void OnDisable()
@@ -113,22 +162,107 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 		}
 
+		private void InitGUI()
+		{
+			if (_tabBtnStyle != null)
+			{
+				return;
+			}
+
+			_tabBtnStyle = new GUIStyle(GUI.skin.button)
+			{
+				alignment = TextAnchor.MiddleLeft,
+			};
+			_tabBtnStyle.fontSize = (int)(_tabBtnStyle.fontSize * 0.4);
+
+			for (int i = 0; i < _displayTabs.Length; i++)
+			{
+				var tempLabel = new GUIContent(_displayTabs[i].label.text + " (00)");
+				var size = _tabBtnStyle.CalcSize(tempLabel);
+				_displayTabs[i].size = size;
+			}
+		}
+
+		private void DrawTabs()
+		{
+			// var bgRect = EditorGUILayout.GetControlRect(false, height);
+
+			GUILayout.BeginHorizontal();
+			GUILayout.FlexibleSpace();
+			
+			var newTab = GUILayout.Toolbar(_prefsTab.Value, _tabLabels, _tabBtnStyle,
+				GUI.ToolbarButtonSize.FitToContents);
+
+			
+			
+			GUILayout.FlexibleSpace();
+			GUILayout.EndHorizontal();
+			//
+			// _currentTab = GUI.Toolbar(bgRect, _currentTab, _tabLabels, _tabBtnStyle,
+			// 	GUI.ToolbarButtonSize.FitToContents);
+
+			EditorGUILayout.Space(EditorGUIUtility.singleLineHeight * 0.25f);
+			
+			if (newTab != _prefsTab.Value)
+			{
+				_prefsTab.Value = newTab;
+			}
+
+			_displayTabs[_prefsTab.Value].fn.Invoke();
+		}
+
+		private void DrawTab_Considerations()
+		{
+			_bucketConsiderations.OnListGUI();
+			serializedObject.ApplyModifiedProperties();
+		}
+
+		private void DrawTab_Actions()
+		{
+			_actionAssetList.OnListGUI();
+			serializedObject.ApplyModifiedProperties();
+		}
+
+		private void DrawTab_Services()
+		{
+			_services.OnListGUI();
+			serializedObject.ApplyModifiedProperties();
+		}
+
 		private static NestedAssetList<UAIAction> CreateActionList(SerializedProperty prop)
 		{
 			var view = new NestedAssetList<UAIAction>(prop);
+
+			view.HeaderHeight = 0f;
 
 			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_ACTION_ICON_GUID;
 			view.DrawTypeIcon = true;
 
 			view.onDrawListItem = (ref Rect rect, SerializedProperty prop, UAIAction so) =>
 			{
-				var wrect = rect.SliceRight(50);
+				var wrect = rect.SliceRight(EditorGUIUtility.singleLineHeight * 3);
 				var newWeight = Mathf.Max(EditorGUI.FloatField(wrect, so._weight), 0f);
 				if (newWeight != so._weight)
 				{
-					Undo.RecordObject(so, "Change weight");
-					so._weight = newWeight;
+					EditorApplication.delayCall += () =>
+					{
+						Undo.RecordObject(so, "Change weight");
+						so._weight = newWeight;
+					};
 				}
+			};
+			return view;
+		}
+		
+		private static NestedAssetList<UAIService> CreateServiceList(SerializedProperty prop)
+		{
+			var view = new NestedAssetList<UAIService>(prop);
+			view.HeaderHeight = 0f;
+			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_SERVICE_ICON_GUID;
+			view.DrawTypeIcon = true;
+			view.onDrawListItem = (ref Rect rect, SerializedProperty prop, UAIService so) =>
+			{
+			
 			};
 			return view;
 		}
@@ -138,6 +272,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			NestedAssetList<UAIConsideration> view = new (prop);
 			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_CONSIDERATION_ICON_GUID;
 			view.DrawTypeIcon = true;
+			view.HeaderHeight = 0f;
 			view.onDrawListItem = (ref Rect rect, SerializedProperty itemProp, UAIConsideration so) =>
 			{
 				if (!so)

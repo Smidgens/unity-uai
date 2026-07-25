@@ -11,6 +11,11 @@ namespace Smidgenomics.Unity.UAI
 	{
 		public abstract float GetScore(in UAIAgentContext context);
 
+		float IUAIConsideration.GetScoreInternal(in UAIAgentContext context)
+		{
+			return EvalScore(GetScore(context));
+		}
+
 		/// <summary>
 		/// Applies inversion flag and curve to score
 		/// </summary>
@@ -20,11 +25,11 @@ namespace Smidgenomics.Unity.UAI
 			return _invert ? 1 - score : score;
 		}
 
-		[SOArrayColumn(60f, true)]
+		// [SOArrayColumn(60f, true)]
 		[HideInInspector]
 		[SerializeField] internal bool _invert = false;
 		
-		[SOArrayColumn(50)]
+		// [SOArrayColumn(50)]
 		[HideInInspector]
 		[SerializeField] internal AnimationCurve _curve = AnimationCurve.Linear(0, 0, 1, 1);
 	}

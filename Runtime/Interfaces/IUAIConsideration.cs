@@ -18,6 +18,7 @@ namespace Smidgenomics.Unity.UAI
 		public string Name { get; }
 
 		public float GetScore(in UAIAgentContext context);
+		internal float GetScoreInternal(in UAIAgentContext context);
 	}
 	
 }

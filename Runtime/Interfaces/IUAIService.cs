@@ -12,12 +12,15 @@ namespace Smidgenomics.Unity.UAI
 	/// </summary>
 	public interface IUAIService
 	{
+		public string Name { get; }
+		public bool Enabled { get; }
+
 		public void InitService();
 
 		public void StartService();
 
 		public void StopService();
-		public IUAIService Clone();
+		public IUAIService Clone(UAIBrain owningBrain);
 
 	}
 }

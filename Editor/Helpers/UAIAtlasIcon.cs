@@ -1,12 +1,14 @@
 // smidgens @ github
 
-namespace Smidgenomics.Unity.UAI
+namespace Smidgenomics.Unity.UAI.Editor
 {
+	using UnityEditor;
 	using UnityEngine;
 	
 	//[System.Serializable]
 	internal readonly struct UAIAtlasIcon
 	{
+		public static UAIAtlasIcon Empty;
 		public readonly Rect coords; //
 		public readonly Texture2D atlas;
 
@@ -26,6 +28,12 @@ namespace Smidgenomics.Unity.UAI
 
 		public void Draw(in Rect area)
 		{
+			if (!atlas)
+			{
+				EditorGUI.DrawRect(area, Color.magenta);
+				return;
+			}
+
 			using (new GUI.ClipScope(area))
 			{
 				var sx = 1f / coords.size.x;

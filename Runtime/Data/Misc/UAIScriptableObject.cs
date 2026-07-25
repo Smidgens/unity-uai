@@ -13,11 +13,11 @@ namespace Smidgenomics.Unity.UAI
 
 		public bool Enabled => _enabled;
 
-		[SerializeField] internal string _label = "";
-		
-		[SOArrayColumn(18f)]
 		[HideInInspector]
 		[SerializeField] internal bool _enabled = true;
+		
+		[Space]
+		[SerializeField] internal string _label = "";
 
 		[HideInInspector]
 		[UnityEngine.Serialization.FormerlySerializedAs("_internalID")]

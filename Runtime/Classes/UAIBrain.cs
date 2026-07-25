@@ -37,9 +37,12 @@ namespace Smidgenomics.Unity.UAI
 
 		// 
 		public int CurrentBucketID => _currentBucketID;
+
+		public int TotalActivations => _totalActivations;
 		
 		// 
 		public int BucketCount => _bucketRecords.Length;
+		public int TotalActionCount => _actionRecords.Length;
 
 		public UAIMemory GetMemory() => _memory;
 
@@ -187,14 +190,24 @@ namespace Smidgenomics.Unity.UAI
 			return brain;
 		}
 
-		internal void ForEachActionInBucket(int bucketID, ActionRefRO<ActionRecord> fn)
+		internal void ForEachActionInBucket(int bucketID, ActionRefRO<ActionRecord> fn, bool sortByScore = true)
 		{
 			if (!_bucketRecords.IsValidIndex(bucketID))
 			{
 				return;
 			}
-			
+
 			ref readonly BucketRecord bucket = ref _bucketRecords[bucketID];
+
+			if (!sortByScore)
+			{
+				for (int i = 0; i < bucket.actionCount; i++)
+				{
+					ref readonly ActionRecord aRecord = ref _actionRecords[bucket.actionIndex + i];
+					fn.Invoke(aRecord);
+				}
+				return;
+			}
 
 			for (int i = 0; i < bucket.actionCount; i++)
 			{
@@ -204,14 +217,33 @@ namespace Smidgenomics.Unity.UAI
 			}
 		}
 
-		internal void ForEachBucket(ActionRefRO<BucketRecord> fn)
+		internal void ForEachBucket(ActionRefRO<BucketRecord> fn, bool sortByScore = true)
 		{
+			if (!sortByScore)
+			{
+				for (int i = 0; i < _bucketRecords.Length; i++)
+				{
+					ref readonly BucketRecord record = ref _bucketRecords[i];
+					fn.Invoke(record);
+				}
+				return;
+			}
+
 			for (int i = 0; i < _bucketIndicesByScore.Length; i++)
 			{
 				int bucketID = _bucketIndicesByScore[i];
 				ref readonly BucketRecord record = ref _bucketRecords[bucketID];
 				fn.Invoke(record);
 			}
+		}
+
+		internal int GetActiveServiceCount()
+		{
+			if (IsValidBucketID(_currentBucketID))
+			{
+				return _bucketRecords[_currentBucketID].services.Length;
+			}
+			return 0;
 		}
 
 		private Coroutine _actionScoringRoutine;
@@ -233,6 +265,7 @@ namespace Smidgenomics.Unity.UAI
 		private bool _disposed;
 		private bool _deactivatingAction;
 		private bool _running;
+		private int _totalActivations;
 
 		internal UAIBrainDebugContext _debugContext;
 
@@ -253,6 +286,7 @@ namespace Smidgenomics.Unity.UAI
 			public int ID;
 			public int bucketID;
 			public float score;
+			public double scoreSum;
 			public float cooldownEnd;
 			public UAIAction template;
 			public UAIAction instance;
@@ -265,7 +299,19 @@ namespace Smidgenomics.Unity.UAI
 			public int considerationIndex;
 			public int considerationCount; // # evaluated considerations
 			public bool reusable;
+			public int activations;
+			public float totalTimeActive;
 
+			public readonly float GetTotalActiveTime()
+			{
+				if (activationRoutine != null || deactivating)
+				{
+					// return totalTimeActive + TimeFromLastActivation();
+				}
+				return totalTimeActive;
+				// return totalTimeActive + TimeFromLastActivation();
+			}
+			
 			public readonly bool OnCooldown()
 			{
 				if (activationRoutine != null || deactivating)
@@ -287,7 +333,7 @@ namespace Smidgenomics.Unity.UAI
 
 			public readonly float TimeFromLastActivation()
 			{
-				return Time.time - lastActivation;
+				return Mathf.Max(0f, Time.time - lastActivation);
 			}
 		}
 
@@ -308,10 +354,11 @@ namespace Smidgenomics.Unity.UAI
 			public float lastActivation;
 			public float weight;
 			public UAISelector actionSelector; 
-			public UAIBucket bucketSO;
-			public UAIConsideration[] considerations;
-			public int considerationIndex;
-			public int considerationCount; // # evaluated considerations
+			internal UAIBucket bucketSO;
+			internal UAIConsideration[] considerations;
+			internal int considerationIndex;
+			internal int considerationCount; // # evaluated considerations
+			internal IUAIService[] services;
 		}
 
 		internal struct ConsiderationInfo
@@ -349,7 +396,23 @@ namespace Smidgenomics.Unity.UAI
 				? bucketConfig.overrideSelector
 				: bucketConfig.bucket._actionSelector;
 				actionSelector = actionSelector ?? UAIDefaults.DefaultActionSelector;
+
+				var services = bucketSO._services.GetItems()
+				.Where(x => x != null)
+				.Select(x => x.Clone(this))
+				.ToList();
+
+				var externalServices = bucketSO._externalServices
+				.Where(x => x != null)
+				.Select(x => x.Clone(this));
 				
+				services.AddRange(externalServices);
+
+				foreach (var s in services)
+				{
+					s.InitService();
+				}
+
 				BucketRecord bucketRecord = new BucketRecord
 				{
 					ID = buckets.Count,
@@ -363,6 +426,7 @@ namespace Smidgenomics.Unity.UAI
 					considerationIndex = totalConsiderations,
 					actionSelector = actionSelector,
 					actionCount = 0,
+					services = services.ToArray(),
 				};
 
 				// track consideration
@@ -494,12 +558,27 @@ namespace Smidgenomics.Unity.UAI
 
 		private void SetNextBucket()
 		{
-			var lastBucket = _currentBucketID;
+			var lastBucketID = _currentBucketID;
 			_currentBucketID = SelectBucket();
 
-			if (IsValidBucketID(_currentBucketID) && lastBucket != _currentBucketID)
+			var changed = lastBucketID != _currentBucketID;
+
+			if (IsValidBucketID(lastBucketID) && changed)
+			{
+				foreach (var s in _bucketRecords[lastBucketID].services)
+				{
+					s.StopService();
+				}
+			}
+			
+			if (IsValidBucketID(_currentBucketID) && changed)
 			{
 				_bucketRecords[_currentBucketID].lastActivation = GetCurrentTime();
+				
+				foreach (var s in _bucketRecords[_currentBucketID].services)
+				{
+					s.StartService();
+				}
 			}
 			
 		}
@@ -654,7 +733,9 @@ namespace Smidgenomics.Unity.UAI
 			}
 
 			record.deactivating = true;
+			var lastActivation = record.lastActivation;
 			UAIManager.RunCoroutine(DeactivateActionRoutine(actionID), onDone);
+			record.totalTimeActive += Mathf.Max(0f, Time.time - lastActivation);
 		}
 
 		internal int GetActiveConsiderationCount()
@@ -757,8 +838,11 @@ namespace Smidgenomics.Unity.UAI
 			}
 			record.instance._brain = this;
 			record.instance._status = EUAIActionStatus.Active;
-			record.activationRoutine = UAIManager.RunCoroutine(record.instance.ActivateAction(), OnActionFinished);
+			record.activations++;
 			record.lastActivation = GetCurrentTime();
+			record.scoreSum += record.score;
+			_totalActivations++;
+			record.activationRoutine = UAIManager.RunCoroutine(record.instance.ActivateAction(), OnActionFinished);
 		}
 
 		// called when action finishes early

@@ -5,16 +5,21 @@
 namespace Smidgenomics.Unity.UAI.Editor
 {
 	using UnityEngine;
+	using System;
 
 	internal sealed class UAIMonitorContext
 	{
-		public void InitGUI()
+		public UAIMonitorContext()
 		{
-			_styles = UAIEditorStyles.CreateInstance();
+			_styles = new(UAIEditorStyles.CreateInstance);
+			_iconAtlas = UAIEditorAtlas.Create();
 		}
 
-		private UAIEditorStyles _styles;
-		private Texture2D _iconAtlas;
+		public UAIEditorStyles Styles => _styles.Value;
+		public UAIEditorAtlas IconAtlas => _iconAtlas;
+
+		private Lazy<UAIEditorStyles> _styles;
+		private UAIEditorAtlas _iconAtlas;
 
 	}
 }

@@ -7,10 +7,12 @@ namespace Smidgenomics.Unity.UAI.Editor
 	// indexers for icon atlas
 	internal enum EUAIAtlasIcon
 	{
+		None = -1,
 		Action = 0, // row 0
 		Bucket,
 		Consideration,
 		MemoryKey,
+		Service,
 		Active = 16, // row 3
 		Cancelled,
 		Uncancellable,
@@ -18,6 +20,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 		Finished,
 		Selectable,
 		Muted,
+		Stats = 48,
+		Timeline,
 		SelectRandom = 56, // row 7
 		SelectTop,
 		SelectTopPercentage
@@ -48,9 +52,13 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 		}
 
-		public UAIAtlasIcon GetIcon(EUAIAtlasIcon icon)
+		public ref readonly UAIAtlasIcon GetIcon(EUAIAtlasIcon icon)
 		{
-			return _atlasIcons[(int)icon];
+			if (icon == EUAIAtlasIcon.None)
+			{
+				return ref UAIAtlasIcon.Empty;
+			}
+			return ref _atlasIcons[(int)icon];
 		}
 
 		private const int _TILE_COUNT = 8;
