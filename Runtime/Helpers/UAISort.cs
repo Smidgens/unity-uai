@@ -19,7 +19,7 @@ namespace Smidgenomics.Unity.UAI
 				this.fn = fn;
 				this.desc = desc;
 			}
-			
+
 			public int Compare(int a, int b)
 			{
 				return desc

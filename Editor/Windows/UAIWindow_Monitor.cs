@@ -710,9 +710,9 @@ namespace Smidgenomics.Unity.UAI.Editor
 				EditorGUI.LabelField(headerRect.SliceRight(colWidth), colLabel, rowStyle);
 			}
 
-			var aIcon = GetAtlasIcon(EUAIAtlasIcon.Action);
-
+			// var aIcon = GetAtlasIcon(EUAIAtlasIcon.Action);
 			
+
 			EditorGUI.LabelField(headerRect, "Action", rowStyle);
 
 			_currentBrain.ForEachBucket((in UAIBrain.BucketRecord bucket) =>
@@ -721,6 +721,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 				_currentBrain.ForEachActionInBucket(bucket.ID, (in UAIBrain.ActionRecord action) =>
 				{
 					var aRow = area.SliceTop(rowHeight);
+
+					var aIcon = GetAtlasIcon(GetActionStatusIcon(action, _currentBrain));
 
 					var overlayRect = aRow;
 	
@@ -806,10 +808,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 					{
 						DrawActionRow(r.SliceTop(aRowHeight), currentAction);
 					}
-
 				}
 			}
-
 			EditorGUI.DrawRect(r.SliceTop(_W_SEPARATOR), _SEPARATOR_COLOR);
 			rr = r;
 		}
@@ -846,6 +846,11 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private static EUAIAtlasIcon GetActionStatusIcon(in UAIBrain.ActionRecord action, UAIBrain brain)
 		{
+			if (action.bucketID != brain.CurrentBucketID)
+			{
+				return EUAIAtlasIcon.Muted;
+			}
+			
 			if (brain.CurrentActionID == action.ID)
 			{
 				if (action.deactivating)

@@ -11,7 +11,7 @@ namespace Smidgenomics.Unity.UAI
 	{
 		public override int SelectIndex(int count, Func<int, float> scoreFn)
 		{
-			return GetBestIndex(count, scoreFn);
+			return GetBestIndexFromSortedDesc(count, scoreFn);
 		}
 
 		public override (string, Rect) GetDebugIcon()

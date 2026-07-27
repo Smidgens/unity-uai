@@ -2,8 +2,6 @@
 
 // ReSharper disable All
 
-
-
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
@@ -18,19 +16,16 @@ namespace Smidgenomics.Unity.UAI
 		// Assumes sorted values in descending order
 		public abstract int SelectIndex(int count, Func<int, float> scoreFn);
 
+		/// <summary>
+		/// (guid/offset+size)
+		/// </summary>
 		public virtual (string, Rect) GetDebugIcon()
 		{
 			return ("a1446d554144a4944b389210a34ff6b9", new Rect(0, 0.125f * 7, 0.125f, 0.125f));
 		}
 
-		public string GetDisplayName()
-		{
-			var dn = GetType().GetCustomAttribute<DisplayNameAttribute>();
-			return dn != null ? dn.DisplayName : GetType().Name;
-		}
-		
 		// assumes descending order
-		protected int GetBestIndex(int count, Func<int, float> scoreFn)
+		protected int GetBestIndexFromSortedDesc(int count, Func<int, float> scoreFn)
 		{
 			for (var i = 0; i < count; i++)
 			{
@@ -39,6 +34,7 @@ namespace Smidgenomics.Unity.UAI
 				{
 					continue;
 				}
+				// if we're in desc order then first non-zero is best
 				return i;
 			}
 			return -1;

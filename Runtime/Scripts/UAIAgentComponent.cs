@@ -32,6 +32,14 @@ namespace Smidgenomics.Unity.UAI
 			_brain.StartLogic();
 		}
 
+		private void OnEnable()
+		{
+			// if (!_brain.IsRunning())
+			// {
+			// 	_brain?.StartLogic();
+			// }
+		}
+
 		private void OnDisable()
 		{
 			_brain.StopLogic();

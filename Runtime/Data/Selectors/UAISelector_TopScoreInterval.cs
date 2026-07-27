@@ -11,7 +11,7 @@ namespace Smidgenomics.Unity.UAI
 	{
 		public override int SelectIndex(int count, Func<int, float> scoreFn)
 		{
-			var topIndex = GetBestIndex(count, scoreFn);
+			var topIndex = GetBestIndexFromSortedDesc(count, scoreFn);
 
 			if (topIndex < 0)
 			{

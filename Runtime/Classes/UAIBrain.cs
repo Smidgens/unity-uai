@@ -543,12 +543,7 @@ namespace Smidgenomics.Unity.UAI
 				? record.instance.CanCancelAction() :
 				false;
 
-				bool shouldScore = true;
-
-				if (actionID == _currentActionID && record.template._sustainAction)
-				{
-					shouldScore = false;
-				}
+				bool shouldScore = !(actionID == _currentActionID && record.template._sustainAction);
 
 				if (shouldScore)
 				{
@@ -559,7 +554,6 @@ namespace Smidgenomics.Unity.UAI
 
 			UAISort.IndicesByWeight(ref _actionIndicesByScore, bucket.actionIndex, bucket.actionCount, i =>
 			{
-				// return _actionRecords[i].score;
 				return _actionRecords[i].GetScore();
 			}, false);
 		}
@@ -624,13 +618,6 @@ namespace Smidgenomics.Unity.UAI
 
 			var nextIndex = SelectAction();
 
-#if SM_DEV
-			if (IsValidActionID(nextIndex) && Mathf.Approximately(_actionRecords[nextIndex].score, 0f))
-			{
-				Debug.Log("Action selected with score 0: " + _actionRecords[nextIndex].template.Name);
-			}
-#endif
-
 			// already running best action
 			if (IsValidActionID(nextIndex) && nextIndex == _currentActionID)
 			{
@@ -654,12 +641,23 @@ namespace Smidgenomics.Unity.UAI
 
 		private int SelectBucket()
 		{
-			int scoreIndex = _bucketSelector.SelectIndex(_bucketRecords.Length, i =>
+			int bestIndex = _bucketSelector.SelectIndex(_bucketRecords.Length, i =>
 			{
 				return _bucketRecords[_bucketIndicesByScore[i]].score;
 			});
 			
-			return scoreIndex > -1 ? _bucketIndicesByScore[scoreIndex] : INVALID_ID;
+			// Ugly hack in case selector does something weird
+			if (bestIndex != INVALID_ID && Mathf.Approximately(_bucketRecords[bestIndex].score, 0f))
+			{
+#if SM_DEV
+				Debug.LogWarning("Bucket selected with score 0: " + _bucketRecords[bestIndex].label);
+#endif
+				return INVALID_ID;
+			}
+
+			return bestIndex > -1
+			? _bucketIndicesByScore[bestIndex]
+			: INVALID_ID;
 		}
 
 		// 
@@ -675,15 +673,27 @@ namespace Smidgenomics.Unity.UAI
 
 			var selector = bucket.bucketSO._actionSelector;
 
-			int scoreIndex = aIndex + selector.SelectIndex(bucket.actionCount, i =>
+			int bestRelativeIndex = selector.SelectIndex(bucket.actionCount, i =>
 			{
 				ref readonly ActionRecord action = ref _actionRecords[_actionIndicesByScore[aIndex + i]];
 				var score = action.OnCooldown() ? 0f : action.GetScore();
-
-				return action.OnCooldown() ? 0f : action.GetScore();
+				return score;
 			});
 
-			return scoreIndex > -1 ? _actionIndicesByScore[scoreIndex] : INVALID_ID;
+			var outIndex = bestRelativeIndex > -1
+			? _actionIndicesByScore[aIndex + bestRelativeIndex]
+			: INVALID_ID;
+
+			// Ugly hack until I figure out what causes this...
+			if (outIndex != INVALID_ID && Mathf.Approximately(_actionRecords[outIndex].score, 0f))
+			{
+#if SM_DEV
+				Debug.LogWarning("Action selected with score 0: " + _actionRecords[outIndex].template.Name);
+#endif
+				return INVALID_ID;
+			}
+
+			return outIndex;
 		}
 
 		// get last score
@@ -719,7 +729,6 @@ namespace Smidgenomics.Unity.UAI
 				scoreIndex = bucket.considerationIndex,
 				scores = _debugContext.considerationScores
 			};
-
 			var score = UAIMath.ScoreConsiderations(_context, bucket.considerations, out count, scoreCtx);
 			return count > 0 ? score * bucket.weight : bucket.weight;
 		}
@@ -735,6 +744,15 @@ namespace Smidgenomics.Unity.UAI
 		{
 			if (_deactivatingAction)
 			{
+				return;
+			}
+
+			// tf is going on here...
+			if (!IsValidActionID(actionID))
+			{
+#if SM_DEV
+				Debug.LogWarning("Trying to disable action with invalid ID: " + actionID);
+#endif
 				return;
 			}
 
@@ -832,14 +850,14 @@ namespace Smidgenomics.Unity.UAI
 			{
 				action.cooldownEnd = GetCurrentTime() + instance.GetActionCooldown();
 			}
-			
+
 			action.deactivating = false;
 			_actionRecords[actionID] = action;
 			DisposeActionInstance(actionID);
 			yield return null;
 
 			_deactivatingAction = false;
-			
+
 			yield return null;
 		}
 
