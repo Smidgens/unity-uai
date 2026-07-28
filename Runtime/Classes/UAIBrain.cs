@@ -152,8 +152,47 @@ namespace Smidgenomics.Unity.UAI
 		/// </summary>
 		public void Dispose()
 		{
+			if (_disposed)
+			{
+				return;
+			}
+
+			if (_running)
+			{
+				StopLogic();
+			}
+
 			_disposed = true;
+
+			for (var i = 0; i < _bucketRecords.Length; i++)
+			{
+				DisposeItems(_bucketRecords[i].services);
+			}
+			_bucketRecords = Array.Empty<BucketRecord>();
+
+			for (var i = 0; i < _actionRecords.Length; i++)
+			{
+				DisposeItem(_actionRecords[i].instance);
+			}
+			_actionRecords = Array.Empty<ActionRecord>();
 			// GC cleanup if necessary
+		}
+
+		private void DisposeItem<T>(T item) where T : class
+		{
+			var ob = item as UnityEngine.Object;
+			if (ob)
+			{
+				UnityEngine.Object.Destroy(ob);
+			}
+		}
+
+		private void DisposeItems<T>(T[] items) where T : class
+		{
+			foreach (var item in items)
+			{
+				DisposeItem(item);
+			}
 		}
 
 		public bool IsValidActionID(int actionID) => _actionRecords.IsValidIndex(actionID);
@@ -408,7 +447,7 @@ namespace Smidgenomics.Unity.UAI
 				actionSelector = actionSelector ?? UAIDefaults.DefaultActionSelector;
 
 				var services = bucketSO._services.GetItems()
-				.Where(x => x != null)
+				.Where(x => x != null && x.Enabled)
 				.Select(x => x.Clone(this))
 				.ToList();
 
