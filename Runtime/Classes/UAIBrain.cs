@@ -535,6 +535,7 @@ namespace Smidgenomics.Unity.UAI
 					bucketRecord.actionCount++;
 
 					var actionTemplate = action.InstantiateAction();
+					actionTemplate.SetBrain(this);
 
 					var actionConsiderations = action._considerations.GetItems()
 					.Where(c => c && c.Enabled)
