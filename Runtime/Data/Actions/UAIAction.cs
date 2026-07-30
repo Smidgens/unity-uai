@@ -60,6 +60,11 @@ namespace Smidgenomics.Unity.UAI
 			// return GetType().GetMethod(nameof(ResetAction))?.DeclaringType != typeof(UAIAction);
 		}
 
+		public string GetStatusText()
+		{
+			return _statusText;
+		}
+
 		protected void FinishAction()
 		{
 			FinishWithStatus(EUAIActionStatus.Finished);
@@ -78,6 +83,8 @@ namespace Smidgenomics.Unity.UAI
 		}
 
 		internal Action onActionFinished;
+
+		[SerializeField] internal string _statusText = string.Empty;
 
 		[Min(0f)]
 		[HideInInspector]
