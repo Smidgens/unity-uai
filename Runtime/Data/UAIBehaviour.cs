@@ -10,6 +10,8 @@ namespace Smidgenomics.Unity.UAI
 		[System.Serializable]
 		public struct BucketExecutionConfig
 		{
+			public bool enabled;
+
 			public UAIBucket bucket;
 		
 			[EditConditionToggle(nameof(enableConsiderations))]
