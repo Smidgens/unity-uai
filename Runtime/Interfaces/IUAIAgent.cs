@@ -13,5 +13,6 @@ namespace Smidgenomics.Unity.UAI
 	{
 		public GameObject gameObject { get; }
 		public UAIMemory agentMemory { get; }
+		public UAIBrain agentBrain { get; }
 	}
 }
