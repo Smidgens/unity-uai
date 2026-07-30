@@ -19,6 +19,11 @@ namespace Smidgenomics.Unity.UAI
 			var navAgent = go.GetComponent<NavMeshAgent>();
 			var loc = GetRandomDestination(navAgent);
 
+			if (!navAgent.enabled)
+			{
+				navAgent.enabled = true;
+			}
+
 			if (!navAgent.SetDestination(loc))
 			{
 				yield return null;
