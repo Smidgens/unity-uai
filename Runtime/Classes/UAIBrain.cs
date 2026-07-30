@@ -791,7 +791,7 @@ namespace Smidgenomics.Unity.UAI
 		private float GetActionScore(in ActionRecord record, in UAIAgentContext context, in UAIScoringContext scoreContext, out int count)
 		{
 			count = 0;
-			float weight = record.template._weight;
+			float weight = record.template.GetActionWeight();
 			if (Mathf.Approximately(weight, 0f))
 			{
 				return 0f;

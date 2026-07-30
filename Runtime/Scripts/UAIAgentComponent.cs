@@ -11,6 +11,7 @@ namespace Smidgenomics.Unity.UAI
 	public sealed class UAIAgentComponent : MonoBehaviour, IUAIAgent
 	{
 		public UAIMemory agentMemory => _brain?.GetMemory();
+		public UAIBrain agentBrain => _brain;
 
 		[FormerlySerializedAs("_template")]
 		[SerializeField] private UAIBehaviour _behaviour;

@@ -23,6 +23,14 @@ namespace Smidgenomics.Unity.UAI
 		}
 
 		/// <summary>
+		/// Optional multiplier for weight, can be used as extra guard for prerequisites before trying to activate
+		/// </summary>
+		public virtual float GetWeightModifier()
+		{
+			return 1f;
+		}
+
+		/// <summary>
 		/// Returns wait time before action can be considered again after deactivation
 		/// </summary>
 		public virtual float GetActionCooldown()
@@ -37,7 +45,7 @@ namespace Smidgenomics.Unity.UAI
 		{
 			return null;
 		}
-		
+
 		/// <summary>
 		/// Deactivation routine, will always run to completion
 		/// </summary>
@@ -57,7 +65,6 @@ namespace Smidgenomics.Unity.UAI
 		public virtual bool IsReusable()
 		{
 			return true;
-			// return GetType().GetMethod(nameof(ResetAction))?.DeclaringType != typeof(UAIAction);
 		}
 
 		public string GetStatusText()
@@ -70,6 +77,11 @@ namespace Smidgenomics.Unity.UAI
 			FinishWithStatus(EUAIActionStatus.Finished);
 		}
 
+		internal float GetActionWeight()
+		{
+			return _weight * Mathf.Max(GetWeightModifier(), 0f);
+		}
+
 		internal void CancelAction()
 		{
 			FinishWithStatus(EUAIActionStatus.Cancelled);
@@ -77,7 +89,7 @@ namespace Smidgenomics.Unity.UAI
 
 		internal UAIAction InstantiateAction()
 		{
-			var instance = ScriptableObject.Instantiate(this);
+			var instance = Instantiate(this);
 			instance.name = name;
 			return instance;
 		}
@@ -111,6 +123,7 @@ namespace Smidgenomics.Unity.UAI
 			ev?.Invoke();
 		}
 
+		#if UNITY_EDITOR
 		// editor/inspector convenience
 		internal override void GatherNestedAssets(List<UAIScriptableObject> assets)
 		{
@@ -122,6 +135,7 @@ namespace Smidgenomics.Unity.UAI
 				}
 			}
 		}
+		#endif
 	}
 }
 
