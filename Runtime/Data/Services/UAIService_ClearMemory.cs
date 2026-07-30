@@ -28,9 +28,28 @@ namespace Smidgenomics.Unity.UAI
 		[SerializeField] private bool _onStart;
 		[SerializeField] private bool _onStop;
 
+		[UAIHideLabel]
+		[SerializeField] private UAIMemoryKey[] _specificKeys = { };
+
 		private void ClearMemory()
 		{
-			GetContext().memory?.ClearAllValues();
+			var memory = GetContext().memory;
+			if (memory == null)
+			{
+				return;
+			}
+			if (_specificKeys.Length > 0)
+			{
+				foreach (var key in _specificKeys)
+				{
+					memory.ClearValue(key);
+				}
+			}
+			else
+			{
+				memory.ClearAllValues();
+			}
+			
 #if SM_DEV
 			Debug.Log("Memory cleared");
 #endif
