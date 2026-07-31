@@ -24,6 +24,8 @@ namespace Smidgenomics.Unity.UAI
 		public static List<FieldInfo> FindFieldsForType(Type type)
 		{
 			List<FieldInfo> fields = new();
+			
+#if UNITY_EDITOR
 			var attributes =
 			type.GetCustomAttributes(typeof(DrawAssetListAttribute), true)
 			.Select(a => a as DrawAssetListAttribute);
@@ -36,6 +38,7 @@ namespace Smidgenomics.Unity.UAI
 				}
 				fields.Add(field);
 			}
+#endif
 			return fields;
 		}
 		
