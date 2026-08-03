@@ -18,6 +18,11 @@ namespace Smidgenomics.Unity.UAI
 			var go = GetContext().agent.gameObject;
 			var navAgent = go.GetComponent<NavMeshAgent>();
 			var loc = GetRandomDestination(navAgent);
+			
+			if (!navAgent || !navAgent.gameObject.activeInHierarchy)
+			{
+				yield break;
+			}
 
 			if (!navAgent.enabled)
 			{
@@ -39,6 +44,12 @@ namespace Smidgenomics.Unity.UAI
 		{
 			var go = GetContext().agent.gameObject;
 			var navAgent = go.GetComponent<NavMeshAgent>();
+
+			if (!navAgent || !navAgent.gameObject.activeInHierarchy || !navAgent.enabled)
+			{
+				yield break;
+			}
+
 			navAgent.SetDestination(navAgent.transform.position);
 
 			yield return new WaitForSeconds(_deactivationDuration);
