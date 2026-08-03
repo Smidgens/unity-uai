@@ -192,6 +192,11 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 			var asset = obProp.objectReferenceValue as T;
 
+			if (!asset)
+			{
+				return;
+			}
+
 			if (DrawTypeIcon)
 			{
 				var iconRect = rect.SliceLeft(rect.height);
