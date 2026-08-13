@@ -23,17 +23,15 @@ namespace Smidgenomics.Unity.UAI
 	using UnityEngine;
 	using UnityEditor;
 	using System;
-	using System.Linq;
 	using System.Reflection;
 	using Editor;
 	using System.ComponentModel;
 	using UObject = UnityEngine.Object;
-	using SP = UnityEditor.SerializedProperty;
 
 	[CustomPropertyDrawer(typeof(InstancedReferenceAttribute))]
 	internal class _InstancedReferenceAttribute : PropertyDrawer
 	{
-		public override void OnGUI(Rect pos, SP prop, GUIContent l)
+		public override void OnGUI(Rect pos, SerializedProperty prop, GUIContent l)
 		{
 			if (prop.propertyType != SerializedPropertyType.ManagedReference)
 			{
@@ -76,19 +74,21 @@ namespace Smidgenomics.Unity.UAI
 
 			if (property.managedReferenceValue != null)
 			{
-				rowCount += property.managedReferenceValue.GetType().FindInspectorFields().Count();
+				rowCount += property.managedReferenceValue.GetType()
+				.FindInspectorFields().Count;
 			}
 			
 			var padding = (rowCount - 1) * 2;
 			return (rowCount) * EditorGUIUtility.singleLineHeight + padding;
 		}
 
+		private GUIContent _btnLabel = new();
+
 		private void SelectorDropdown(Rect pos, SerializedProperty prop)
 		{
 			Type currentType = prop.managedReferenceValue?.GetType();
 
 			var defLabel = (attribute as InstancedReferenceAttribute).defaultValueLabel;
-
 
 			var btnLabel = currentType != null
 			? currentType.Name
@@ -99,8 +99,10 @@ namespace Smidgenomics.Unity.UAI
 			{
 				btnLabel = dn.DisplayName;
 			}
+			
+			_btnLabel.text = btnLabel;
 
-			if (!GUI.Button(pos, btnLabel, EditorStyles.popup))
+			if (!EditorGUI.DropdownButton(pos, _btnLabel, FocusType.Keyboard))
 			{
 				return;
 			}
