@@ -1,5 +1,7 @@
 // smidgens @ github
 
+#if UNITY_EDITOR
+
 namespace Smidgenomics.Unity.UAI.Editor
 {
 	using UnityEditor;
@@ -52,7 +54,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 				GUI.DrawTexture(ir, atlas, ScaleMode.StretchToFill);
 			}
 		}
-		
-		
 	}
 }
+
+#endif

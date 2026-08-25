@@ -2,6 +2,8 @@
 
 // resharper disable all
 
+#if UNITY_EDITOR
+
 namespace Smidgenomics.Unity.UAI.Editor
 {
 	// indexers for icon atlas
@@ -36,10 +38,21 @@ namespace Smidgenomics.Unity.UAI.Editor
 	// wraps use of icon texture atlas
 	internal sealed class UAIEditorAtlas
 	{
-		public static UAIEditorAtlas Create()
+		private static UAIEditorAtlas Create()
 		{
 			var atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(_ATLAS_GUID));
 			return new UAIEditorAtlas(atlas);
+		}
+
+		private static UAIEditorAtlas _instance;
+
+		private static UAIEditorAtlas GetInstance()
+		{
+			if (_instance == null)
+			{
+				_instance = Create();
+			}
+			return _instance;
 		}
 
 		private UAIEditorAtlas(Texture2D atlas)
@@ -52,13 +65,13 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 		}
 
-		public ref readonly UAIAtlasIcon GetIcon(EUAIAtlasIcon icon)
+		public static ref readonly UAIAtlasIcon GetIcon(EUAIAtlasIcon icon)
 		{
 			if (icon == EUAIAtlasIcon.None)
 			{
 				return ref UAIAtlasIcon.Empty;
 			}
-			return ref _atlasIcons[(int)icon];
+			return ref GetInstance()._atlasIcons[(int)icon];
 		}
 
 		private const int _TILE_COUNT = 8;
@@ -68,3 +81,5 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private readonly UAIAtlasIcon[] _atlasIcons = new UAIAtlasIcon[_TILE_COUNT * _TILE_COUNT];
 	}
 }
+
+#endif

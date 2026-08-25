@@ -21,3 +21,20 @@ namespace Smidgenomics.Unity.UAI
 		Weighted
 	}
 }
+
+// namespace Smidgenomics.Unity.UAI
+// {
+// 	/// <summary>
+// 	/// Editor helper
+// 	/// </summary>
+// 	[System.Flags]
+// 	internal enum EUAIActionOverrideFlags
+// 	{
+// 		None = 0,
+// 		ActivateAction = 1,
+// 		DeactivateAction = 2,
+// 		CanCancelAction = 4,
+// 		GetActionCooldown = 8,
+// 		GetWeightModifier = 16,
+// 	}
+// }

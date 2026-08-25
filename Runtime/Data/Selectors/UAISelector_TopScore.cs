@@ -7,6 +7,7 @@ namespace Smidgenomics.Unity.UAI
 	using System.ComponentModel;
 
 	[DisplayName("Top Score")]
+	[System.Serializable]
 	public sealed class UAISelector_TopScore : UAISelector
 	{
 		public override int SelectIndex(int count, Func<int, float> scoreFn)

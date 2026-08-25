@@ -23,6 +23,7 @@ namespace Smidgenomics.Unity.UAI
 	using UnityEngine;
 	using UnityEditor;
 	using System;
+	using System.Collections.Generic;
 	using System.Reflection;
 	using Editor;
 	using System.ComponentModel;
@@ -42,7 +43,7 @@ namespace Smidgenomics.Unity.UAI
 
 			var typeRect = pos.SliceTop(EditorGUIUtility.singleLineHeight);
 			pos.SliceTop(2);
-			
+
 			if(l != GUIContent.none && !fieldInfo.FieldType.IsArray)
 			{
 				typeRect = EditorGUI.PrefixLabel(typeRect, l);
@@ -55,9 +56,16 @@ namespace Smidgenomics.Unity.UAI
 				{
 					return;
 				}
+
+				if (_cachedFields.Item1 != prop.managedReferenceValue.GetType())
+				{
+					_cachedFields = (prop.managedReferenceValue.GetType(),
+					prop.managedReferenceValue.GetType().FindInspectorFields());
+				}
+
 				var extraIndent = 1;
 				EditorGUI.indentLevel += extraIndent;
-				foreach (var field in prop.managedReferenceValue.GetType().FindInspectorFields())
+				foreach (var field in _cachedFields.Item2)
 				{
 					var fRect = pos.SliceTop(EditorGUIUtility.singleLineHeight);
 					var fProp = prop.serializedObject.FindProperty(prop.propertyPath + "." + field.Name);
@@ -82,7 +90,9 @@ namespace Smidgenomics.Unity.UAI
 			return (rowCount) * EditorGUIUtility.singleLineHeight + padding;
 		}
 
+		
 		private GUIContent _btnLabel = new();
+		private (Type, IReadOnlyList<FieldInfo>) _cachedFields;
 
 		private void SelectorDropdown(Rect pos, SerializedProperty prop)
 		{

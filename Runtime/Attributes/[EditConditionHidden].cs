@@ -14,10 +14,12 @@ namespace Smidgenomics.Unity.UAI
 	internal sealed class EditConditionHiddenAttribute : PropertyAttribute
 	{
 		public string toggleFieldName { get; }
+		internal byte extraIndent { get; }
 
-		public EditConditionHiddenAttribute(string fieldName)
+		public EditConditionHiddenAttribute(string fieldName, byte extraIndent = 0)
 		{
 			toggleFieldName = fieldName;
+			this.extraIndent = extraIndent;
 		}
 	}
 }
@@ -40,8 +42,12 @@ namespace Smidgenomics.Unity.UAI.Editor
 			{
 				return;
 			}
+
+			var attr = attribute as EditConditionHiddenAttribute;
 			
 			var tIndent = EditorGUI.indentLevel;
+			
+			EditorGUI.indentLevel += attr.extraIndent;
 			
 			// label not blank and item not inside array
 			if(l != GUIContent.none && !fieldInfo.FieldType.IsArray)
@@ -50,8 +56,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 			
 			EditorGUI.indentLevel = 0;
-
-			var attr = attribute as EditConditionHiddenAttribute;
 
 			var fieldName = prop.name;
 			var basePath = prop.propertyPath.Substring(0, prop.propertyPath.Length - fieldName.Length);
@@ -67,7 +71,9 @@ namespace Smidgenomics.Unity.UAI.Editor
 			using (new EditorGUI.PropertyScope(pos, l, prop))
 			{
 				GUI.enabled = toggleProp.boolValue;
+				
 				EditorGUI.PropertyField(pos, prop, GUIContent.none);
+				EditorGUI.indentLevel -= attr.extraIndent;
 			}
 
 			EditorGUI.indentLevel = tIndent;

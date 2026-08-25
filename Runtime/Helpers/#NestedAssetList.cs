@@ -1,7 +1,5 @@
 // smidgens @ github
 
-// ReSharper disable All
-
 #if UNITY_EDITOR
 
 namespace Smidgenomics.Unity.UAI.Editor
@@ -13,12 +11,16 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using System.ComponentModel;
 	using System.Reflection;
 	using UnityEditorInternal;
+	using Object = UnityEngine.Object;
 
 	internal sealed class NestedAssetList<T> where T : UAIScriptableObject
 	{
 		public delegate void ListItemDrawFn(ref Rect rect, SerializedProperty prop, T item);
+		public delegate void HeaderCallback(Rect rect);
 
 		public ListItemDrawFn onDrawListItem = null;
+		public HeaderCallback onDrawHeader;
+		public HeaderCallback onDrawNone;
 
 		public bool IsIndexSelected(int index) => _assetList.IsSelected(index);
 		
@@ -31,6 +33,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 		}
 
 		public int Count => _assetList.count;
+		
+		public string HeaderLabel { get; set; }
 
 		public string DefaultTypeIconGUID
 		{
@@ -53,21 +57,30 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		public NestedAssetList(SerializedProperty prop)
 		{
+			_outerProp = prop;
 			_arrayProp = prop.FindPropertyRelative(nameof(SOArray<UAIScriptableObject>._array));
-			_addContext = UAIEditorUtils.CreateTypeMenu(typeof(T), OnAddOption);
-			_assetList = new ReorderableList(_arrayProp.serializedObject, _arrayProp);
-			_assetList.onAddDropdownCallback = (r, l) => _addContext.DropDown(r);
-			_assetList.onRemoveCallback = OnListRemove;
-
-			_assetList.drawHeaderCallback = rect =>
+			_addContext = UAIEditorUtils.CreateTypeMenu(typeof(T), OnAddOption, null);
+			_assetList = new ReorderableList(_arrayProp.serializedObject, _arrayProp)
 			{
-				EditorGUI.LabelField(rect, new  GUIContent(prop.displayName), EditorStyles.whiteLargeLabel);
+				drawHeaderCallback = DrawHeader,
+				drawElementCallback = DrawListItem,
+				displayAdd = false,
+				displayRemove = false,
+				draggable = true,
+				elementHeightCallback = i => EditorGUIUtility.singleLineHeight
 			};
-
-			_assetList.drawElementCallback = (rect, index, isActive, isFocused) =>
+			_assetList.drawNoneElementCallback = rect =>
 			{
-				DrawListItem(rect, index);
+				if (onDrawNone != null)
+				{
+					onDrawNone.Invoke(rect);
+				}
+				else
+				{
+					GUI.Label(rect, "List is Empty");
+				}
 			};
+			_assetList.footerHeight = 0f;
 		}
 
 		// 
@@ -87,8 +100,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 			if (_childInspector && _childInspector.target)
 			{
 				EditorGUILayout.Space(2);
-
-				DrawHeader();
 				_childInspector.OnInspectorGUI();
 			}
 		}
@@ -97,26 +108,85 @@ namespace Smidgenomics.Unity.UAI.Editor
 		{
 			if (_childInspector)
 			{
-				Editor.DestroyImmediate(_childInspector);
+				Object.DestroyImmediate(_childInspector);
 				_childInspector = null;
 			}
 		}
 
-		private ReorderableList _assetList = null;
-		private SerializedProperty _arrayProp = null;
-		private GenericMenu _addContext = null;
-		private Editor _childInspector = null;
-		private string _defaultIconGuidGuid = null;
-		private Lazy<Texture> _defaultTypeIcon = null;
-
+		private readonly ReorderableList _assetList;
+		private readonly SerializedProperty _outerProp;
+		private readonly SerializedProperty _arrayProp;
+		private Editor _childInspector;
+		private string _defaultIconGuidGuid;
+		private Lazy<Texture> _defaultTypeIcon;
 		private GUIContent _contextIcon;
 		private float _ctxButtonHeight;
+		private readonly GenericMenu _addContext;
+		private readonly GUIContent _addBtn = EditorGUIUtility.IconContent("Toolbar Plus More");
 
-		private void DrawContextButton(Rect rect, T asset)
+		private Lazy<GUIStyle> _headerLabelStyle = new(() =>
+		{
+			var color = EditorStyles.largeLabel.normal.textColor;
+
+			if (EditorGUIUtility.isProSkin)
+			{
+				color = Color.white * 0.9f;
+			}
+			
+			var s = new GUIStyle(EditorStyles.largeLabel)
+			{
+				fontStyle = FontStyle.Bold,
+				normal =
+				{
+					textColor = color
+				}
+			};
+			return s;
+		});
+
+		private string GetDisplayName()
+		{
+			if (!string.IsNullOrEmpty(HeaderLabel))
+			{
+				return HeaderLabel;
+			}
+			return _outerProp.displayName;
+		}
+
+
+		private void DrawHeader(Rect rect)
+		{
+			var btnSize = EditorStyles.iconButton.CalcSize(_addBtn);
+
+			var btnRect = rect.SliceRight(btnSize.x);
+			var btnCenter = btnRect.center;
+
+			btnRect.height = btnSize.y;
+			btnRect.center = btnCenter;
+
+			if (onDrawHeader != null)
+			{
+				onDrawHeader.Invoke(rect);
+			}
+			else
+			{
+				EditorGUI.LabelField(rect, GetDisplayName(), _headerLabelStyle.Value);
+			}
+
+			if (GUI.Button(btnRect, _addBtn, EditorStyles.iconButton))
+			{
+				_addContext.DropDown(btnRect);
+			}
+			
+		}
+
+		private static readonly GUIContent _LB_EDIT_SCRIPT = new ("Edit Script");
+
+		private void DrawContextButton(Rect rect, T asset, int index)
 		{
 			if (_contextIcon == null)
 			{
-				_contextIcon = new GUIContent(EditorGUIUtility.FindTexture("_Menu"));
+				_contextIcon = EditorGUIUtility.IconContent("_Menu");
 				_ctxButtonHeight = EditorStyles.iconButton.CalcHeight(_contextIcon, 100);
 			}
 
@@ -127,34 +197,55 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 			if (GUI.Button(btnRect, _contextIcon, EditorStyles.iconButton))
 			{
-				ShowContextMenu(asset);
+				var m = new GenericMenu();
+
+				if (CanEditScript(asset.GetType()))
+				{
+					m.AddItem(_LB_EDIT_SCRIPT, false, () => UAIEditorUtils.OpenScriptEditor(asset));
+				}
+				else
+				{
+					m.AddDisabledItem(_LB_EDIT_SCRIPT);
+				}
+				m.AddSeparator(string.Empty);
+				m.AddItem(new GUIContent("Remove"), false, () => RemoveAtIndex(index));
+				m.ShowAsContext();
 			}
 		}
 
-		private void DrawHeader()
+		private static bool CanEditScript(Type type)
 		{
-			var currentType = _childInspector.target.GetType();
-			var typeLabel = $"{currentType.Namespace}.{currentType.Name}";
-			EditorGUILayout.BeginVertical(GUI.skin.box);
-			EditorGUILayout.LabelField(typeLabel, EditorStyles.miniLabel);
-			EditorGUILayout.EndVertical();
+			// TODO: Only return false if script was installed via package manager
+			if (type.Assembly == typeof(UAIAction).Assembly)
+			{
+				#if SM_DEV
+				return true;
+				#else
+				return false;
+				#endif
+			}
+			return true;
 		}
 
-		private void ShowContextMenu(T asset)
+		private void RemoveAtIndex(int i)
 		{
-			var scriptFile = UAIEditorUtils.GetObjectMonoscript(asset);
-			var fileName = scriptFile.name;
-			var m = new GenericMenu();
-			m.AddItem(new GUIContent($"Edit Script"), false, () => AssetDatabase.OpenAsset(scriptFile));
-			m.ShowAsContext();
+			var arrItem = _assetList.serializedProperty.GetArrayElementAtIndex(i);
+			var obProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.item));
+			var asset = obProp.objectReferenceValue as UAIScriptableObject;
+			_assetList.serializedProperty.DeleteArrayElementAtIndex(i);
+			_assetList.serializedProperty.serializedObject.ApplyModifiedProperties();
+			if (asset)
+			{
+				List<UAIScriptableObject> destroyList = new() { asset };
+				asset.GatherNestedAssets(destroyList);
+				destroyList.ForEach(Undo.DestroyObjectImmediate);
+			}
 		}
 
 		private void OnAddOption(object option)
 		{
 			EditorApplication.delayCall += () => AddAsset(option as Type, _arrayProp);
 		}
-
-		private void DelayCall(Action action) => EditorApplication.delayCall += () => action.Invoke();
 
 		private void EnsureInspector()
 		{
@@ -163,7 +254,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			? _arrayProp.GetArrayElementAtIndex(i)
 			: null;
 
-			UnityEngine.Object currentItem = null;
+			Object currentItem = null;
 
 			if (currentArrItem != null)
 			{
@@ -172,7 +263,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 			if (_childInspector && (_childInspector.target != currentItem || !_childInspector.target))
 			{
-				UnityEngine.Object.DestroyImmediate(_childInspector);
+				Object.DestroyImmediate(_childInspector);
 				_childInspector = null;
 			}
 
@@ -182,11 +273,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 		}
 
-		private void DrawListItem(Rect rect, int index)
+		private void DrawListItem(Rect rect, int index, bool active, bool focused)
 		{
-			// rect.SliceLeft(2f);
-			// rect.SliceRight(2f);
-			
 			SerializedProperty prop = _arrayProp.GetArrayElementAtIndex(index);
 			SerializedProperty obProp = prop.FindPropertyRelative("item");
 
@@ -194,19 +282,20 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 			if (!asset)
 			{
+				EditorGUI.LabelField(rect, "null");
 				return;
 			}
 
 			if (DrawTypeIcon)
 			{
 				var iconRect = rect.SliceLeft(rect.height);
-				rect.SliceLeft(rect.height * 0.25f);
+				rect.SliceLeft(EditorGUIUtility.standardVerticalSpacing);
 				DrawIcon(iconRect, asset);
 			}
 
 			var ctxRect = rect.SliceRight(rect.height * 0.6f);
-			rect.SliceRight(rect.height * 0.25f);
-			DrawContextButton(ctxRect, asset);
+			rect.SliceRight(EditorGUIUtility.standardVerticalSpacing);
+			DrawContextButton(ctxRect, asset, index);
 
 			var checkRect = rect.SliceLeft(rect.height);
 			var newEnabled = GUI.Toggle(checkRect, asset._enabled, GUIContent.none);
@@ -218,57 +307,107 @@ namespace Smidgenomics.Unity.UAI.Editor
 					asset._enabled = newEnabled;
 				};
 			}
+			var labelRect = rect;
+			labelRect.height = EditorGUIUtility.singleLineHeight;
+			labelRect.center = rect.center;
 
-			if (asset && onDrawListItem != null)
+			if (onDrawListItem != null)
 			{
-				var labelRect = rect;
-				labelRect.height = EditorGUIUtility.singleLineHeight;
-				labelRect.center = rect.center;
 				onDrawListItem.Invoke(ref labelRect, prop, asset);
+			}
 
-				EditorGUI.LabelField(labelRect, asset._label);
-				return;
+			labelRect.SliceRight(EditorGUIUtility.standardVerticalSpacing);
+			
+			DoItemLabel(labelRect, index, asset, focused);
+		}
+
+		private int _labelEditIndex = -1;
+		private (int, double) _lastMouseDown;
+		private const double _DOUBLE_CLICK_THRESHOLD = 0.2;
+		private const string _LABEL_CONTROL_NAME = "asset_label";
+
+		private bool _didRename;
+
+		private void DoItemLabel(Rect rect, int i, T asset, bool focused)
+		{
+			// Note: this is a mess
+
+			if (_labelEditIndex != i)
+			{
+				if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
+				{
+					if (rect.Contains(Event.current.mousePosition))
+					{
+						var (lastIndex, lastTime) = _lastMouseDown;
+						var elapsed = EditorApplication.timeSinceStartup - lastTime;
+						if (lastIndex == i && elapsed < _DOUBLE_CLICK_THRESHOLD)
+						{
+							_labelEditIndex = i;
+						}
+						_lastMouseDown = (i, EditorApplication.timeSinceStartup);
+					}
+				}
+				else if (focused && Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.F2)
+				{
+					_labelEditIndex = i;
+					_didRename = true;
+					Event.current.Use();
+				}
+			}
+			if (_labelEditIndex == i)
+			{
+				if (_assetList.index != i)
+				{
+					_labelEditIndex = -1;
+				}
+				else if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
+				{
+					_labelEditIndex = -1;
+					Event.current.Use();
+				}
+				else
+				{
+					if (_didRename)
+					{
+						GUI.FocusControl(_LABEL_CONTROL_NAME);
+						EditorGUI.FocusTextInControl(_LABEL_CONTROL_NAME);
+						_didRename = false;
+					}
+					EditorGUI.BeginChangeCheck();
+					GUI.SetNextControlName(_LABEL_CONTROL_NAME);
+					var newLabel = EditorGUI.DelayedTextField(rect, asset._label);
+
+					
+					if (EditorGUI.EndChangeCheck())
+					{
+						_labelEditIndex = -1;
+						if (newLabel.Length > 0)
+						{
+							Undo.RecordObject(asset, "Edit label");
+							asset._label = newLabel;
+						}
+				
+					}
+				}
 			}
 			else
 			{
-				EditorGUI.LabelField(rect, asset?._label ?? "null");
+				EditorGUI.LabelField(rect, asset._label);
 			}
-		}
-		
-		private void OnListRemove(ReorderableList list)
-		{
-			var i = list.index;
-			var sp = list.serializedProperty;
-			var arrItem = list.serializedProperty.GetArrayElementAtIndex(i);
-			var obProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.item));
-			var idProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.id));
-			var asset = obProp.objectReferenceValue as UAIScriptableObject;
-			var path = AssetDatabase.GetAssetPath(asset);
-
-			var mainAsset = AssetDatabase.LoadMainAssetAtPath(path);
-			sp.DeleteArrayElementAtIndex(i);
-			sp.serializedObject.ApplyModifiedProperties();
-
-			List<UAIScriptableObject> destroyList = new();
-			destroyList.Add(asset);
-			asset.GatherNestedAssets(destroyList);
-
-			destroyList.ForEach(Undo.DestroyObjectImmediate);
-
 		}
 
 		private static string GetDefaultAssetName(Type type)
 		{
 			if (type == null)
 			{
-				return "";
+				return string.Empty;
 			}
 
 			var displayName = type.GetCustomAttribute<DisplayNameAttribute>();
 
 			if (displayName != null)
 			{
-				var startIndex = displayName.DisplayName.LastIndexOf("/");
+				var startIndex = displayName.DisplayName.LastIndexOf('/');
 				if (startIndex < 0)
 				{
 					startIndex = 0;
@@ -294,8 +433,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 				return;
 			}
 			
-			var mainAsset = arrayProp.serializedObject.targetObject as UnityEngine.Object;
-			var newAsset = ScriptableObject.CreateInstance(assetType) as UAIScriptableObject;
+			var mainAsset = arrayProp.serializedObject.targetObject;
+			var newAsset = (ScriptableObject.CreateInstance(assetType) as UAIScriptableObject)!;
 			newAsset.hideFlags = HideFlags.HideInHierarchy;
 
 			var assetName = GetDefaultAssetName(assetType);
@@ -310,99 +449,26 @@ namespace Smidgenomics.Unity.UAI.Editor
 			var arrItem = arrayProp.GetArrayElementAtIndex(newIndex);
 			var obProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.item));
 			var idProp = arrItem.FindPropertyRelative(nameof(SORef<UAIScriptableObject>.id));
-
 			idProp.stringValue = newAsset._id;
 			obProp.objectReferenceValue = newAsset;
-
-			// arrItem.objectReferenceValue = newAsset;
 			arrayProp.serializedObject.ApplyModifiedProperties();
+
+			// _assetList.index = _assetList.count - 1;
+			_assetList.Select(_assetList.count - 1);
+			_assetList.GrabKeyboardFocus();
+
 		}
 
-		private void DrawIcon(Rect rect, ScriptableObject asset)
+		private void DrawIcon(Rect rect, T asset)
 		{
-			rect.Resize(-rect.height * 0.12f);
-			var ms = MonoScript.FromScriptableObject(asset);
-			var path = AssetDatabase.GetAssetPath(ms);
-			Texture ico = AssetDatabase.GetCachedIcon(path);
-
-			if (_defaultTypeIcon != null && UAIEditorUtils.IsDefaultScriptIcon(ico))
+			rect.Resize(-rect.height * 0.15f);
+			var c = Color.white;
+			if (!asset._enabled)
 			{
-				ico = _defaultTypeIcon.Value;
+				c.a = 0.5f;
 			}
-
-			if (!ico)
-			{
-				return;
-			}
-
-			var tc = GUI.color;
-			var c = tc;
-			c.a = 0.5f;
-			GUI.color = c;
-			GUI.DrawTexture(rect, ico, ScaleMode.StretchToFill);
-			GUI.color = tc;
+			UAIEditorGUI.DrawTypeIcon(rect, asset, c);
 		}
-
-		private static void DrawIconBasic(Rect rect, ScriptableObject asset)
-		{
-			rect.Resize(-rect.height * 0.12f);
-			var ms = MonoScript.FromScriptableObject(asset);
-			var path = AssetDatabase.GetAssetPath(ms);
-			Texture ico = AssetDatabase.GetCachedIcon(path);
-
-			if (!ico)
-			{
-				return;
-			}
-			GUI.DrawTexture(rect, ico, ScaleMode.StretchToFill);
-		}
-		
-		// private void DrawScriptInfo()
-		// {
-		// 	if (!_childInspector)
-		// 	{
-		// 		return;
-		// 	}
-		//
-		// 	var type = _childInspector.target.GetType();
-		//
-		// 	var typeLabel = $"{type.Assembly.GetName().Name}.{type.Name}";
-		//
-		// 	var open = false;
-		//
-		// 	var tempColor = GUI.backgroundColor;
-		// 	GUI.backgroundColor = Color.cyan * 0.5f;
-		// 	
-		// 	EditorGUILayout.BeginVertical(GUI.skin.box);
-		//
-		// 	var btnLabel = new GUIContent("Edit");
-		// 	var btnStyle = EditorStyles.miniButton;
-		// 	var btnWidth = btnStyle.CalcSize(btnLabel).x;
-		// 	
-		// 	var dRect = EditorGUILayout.GetControlRect(GUILayout.Height(EditorGUIUtility.singleLineHeight));
-		// 	dRect.SliceLeft(2f);
-		//
-		// 	var iconRect = dRect.SliceLeft(dRect.height);
-		// 	dRect.SliceLeft(2f);
-		// 	
-		// 	var btnRect = dRect.SliceRight(btnWidth);
-		// 	dRect.SliceRight(2f);
-		//
-		// 	DrawIconBasic(iconRect, _childInspector.target as ScriptableObject);
-		// 	
-		// 	EditorGUI.LabelField(dRect, typeLabel, EditorStyles.miniLabel);
-		//
-		// 	open = GUI.Button(btnRect, btnLabel, btnStyle);
-		//
-		// 	EditorGUILayout.EndVertical();
-		//
-		// 	GUI.backgroundColor = tempColor;
-		//
-		// 	if (open)
-		// 	{
-		// 		UtilityEditorUtils.OpenScriptEditor(_childInspector.target);
-		// 	}
-		// }
 
 	}
 	

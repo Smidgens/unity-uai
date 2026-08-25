@@ -53,3 +53,21 @@ namespace Smidgenomics.Unity.UAI
 
 	}
 }
+
+#if UNITY_EDITOR
+
+namespace Smidgenomics.Unity.UAI.Editor
+{
+	using UnityEditor;
+
+	[CustomEditor(typeof(UAIAgentComponent))]
+	internal sealed class _UAIAgentComponent : _UAIInspector
+	{
+		protected override bool ShouldShowTypeInfo() => false;
+
+		protected override bool ShouldGroupFields() => false;
+	}
+
+}
+
+#endif

@@ -78,7 +78,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private readonly Dictionary<Type, UAIAtlasIcon> _cachedSelectorIcons = new();
 
 		private Vector2 _scrollBrainList;
-		private UAIEditorAtlas _iconAtlas;
+		// private UAIEditorAtlas _iconAtlas;
 		private UAIEditorStyles _editorStyles;
 		
 		private (string, Rect) _tooltip;
@@ -118,7 +118,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			};
 		}
 
-		private ref readonly UAIAtlasIcon GetAtlasIcon(EUAIAtlasIcon icon) => ref _iconAtlas.GetIcon(icon);
+		private ref readonly UAIAtlasIcon GetAtlasIcon(EUAIAtlasIcon icon) => ref UAIEditorAtlas.GetIcon(icon);
 
 		private static T LoadFromGUID<T>(string guid) where T : UnityEngine.Object
 		{
@@ -151,7 +151,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private void OnEnable()
 		{
-			_iconAtlas = UAIEditorAtlas.Create();
+			// _iconAtlas = UAIEditorAtlas.Create();
 
 			titleContent = GetWindowTitle();
 
@@ -478,7 +478,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 				var iconRect = btnRect;
 				iconRect = iconRect.SliceLeft(btnRect.height).Resized(-btnRect.height * 0.2f);
 				
-				_iconAtlas.GetIcon(panel.icon).Draw(iconRect, UAIEditorStyles.GetIconColor() * 0.8f);
+				UAIEditorAtlas.GetIcon(panel.icon).Draw(iconRect, UAIEditorStyles.GetIconColor() * 0.8f);
 			}
 
 			if (enabled)

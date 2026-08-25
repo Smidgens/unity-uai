@@ -149,6 +149,8 @@ namespace Smidgenomics.Unity.UAI
 				_cachedManager.UnregisterBrain(this);
 				UAIManager.StopRoutine(_actionScoringRoutine);
 				UAIManager.StopRoutine(_bucketScoringRoutine);
+				UAIManager.StopRoutine(_deactivationRoutine);
+				
 			}
 			_actionScoringRoutine = null;
 		}
@@ -313,6 +315,8 @@ namespace Smidgenomics.Unity.UAI
 		private bool _deactivatingAction;
 		private bool _running;
 		private int _totalActivations;
+
+		private Coroutine _deactivationRoutine;
 		
 		// private int _CurrentBucketID = INVALID_ID;
 		
@@ -474,11 +478,11 @@ namespace Smidgenomics.Unity.UAI
 				
 				var bucketSO = bucketConfig.bucket;
 				var bucketWeight = bucketConfig.enableWeight
-				? bucketConfig.overrideWeight
+				? bucketConfig.weight
 				: bucketConfig.bucket._weight;
 				
 				var bucketConsiderations = bucketConfig.enableConsiderations
-				? bucketConfig.overrideConsiderations._considerations.GetItems()
+				? bucketConfig.considerations._considerations.GetItems()
 				: bucketConfig.bucket._bucketConsiderations.GetItems();
 
 				// filter out invalids
@@ -486,8 +490,8 @@ namespace Smidgenomics.Unity.UAI
 				.Where(c => c != null && c.Enabled)
 				.ToArray();
 
-				var actionSelector = bucketConfig.enableSelector && bucketConfig.overrideSelector != null
-				? bucketConfig.overrideSelector
+				var actionSelector = bucketConfig.enableSelector && bucketConfig.selector != null
+				? bucketConfig.selector
 				: bucketConfig.bucket._actionSelector;
 				actionSelector = actionSelector ?? UAIDefaults.DefaultActionSelector;
 
@@ -836,7 +840,7 @@ namespace Smidgenomics.Unity.UAI
 			if (!IsValidActionID(actionID))
 			{
 #if SM_DEV
-				Debug.LogWarning($"Trying to disable action with invalid ID [{actionID}, Status [{status}]");
+				Debug.LogWarning($"Trying to disable action with invalid ID [{actionID}], Status [{status}]");
 #endif
 				return;
 			}
@@ -855,7 +859,7 @@ namespace Smidgenomics.Unity.UAI
 
 			record.deactivating = true;
 			var lastActivation = record.lastActivation;
-			UAIManager.RunCoroutine(DeactivateActionRoutine(actionID), onDone);
+			_deactivationRoutine = UAIManager.RunCoroutine(DeactivateActionRoutine(actionID), onDone);
 			record.totalTimeActive += Mathf.Max(0f, Time.time - lastActivation);
 		}
 
@@ -922,13 +926,23 @@ namespace Smidgenomics.Unity.UAI
 
 		private IEnumerator DeactivateActionRoutine(int actionID)
 		{
+			// ActionRecord action = _actionRecords[actionID];
+			
 			var instance = _actionRecords[actionID].instance;
 
 			if (instance != null)
 			{
 				yield return instance.DeactivateAction();
 			}
-			
+
+			if (!IsValidActionID(actionID))
+			{
+#if SM_DEV
+				Debug.LogWarning($"Deactivating action with invalid ID: {actionID}");
+#endif
+				yield break;
+			}
+	
 			ActionRecord action = _actionRecords[actionID];
 
 			if (instance != null)
@@ -937,13 +951,17 @@ namespace Smidgenomics.Unity.UAI
 			}
 
 			action.deactivating = false;
+
 			_actionRecords[actionID] = action;
+
 			DisposeActionInstance(actionID);
 			yield return null;
 
 			_deactivatingAction = false;
 
 			yield return null;
+
+			_deactivationRoutine = null;
 		}
 
 		private void NotifyActionChanged()
@@ -986,6 +1004,14 @@ namespace Smidgenomics.Unity.UAI
 
 		private void DisposeActionInstance(int actionID)
 		{
+			if (!IsValidActionID(actionID))
+			{
+#if SM_DEV
+				Debug.LogWarning($"Trying to dispose action with invalid ID: {actionID}");
+#endif
+				return;
+			}
+			
 			ref ActionRecord record = ref _actionRecords[actionID];
 
 			if (record.instance && record.reusable)

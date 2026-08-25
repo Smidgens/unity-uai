@@ -1,7 +1,5 @@
 // smidgens @ github
 
-// ReSharper disable All
-
 #if UNITY_EDITOR
 
 namespace Smidgenomics.Unity.UAI.Editor
@@ -9,7 +7,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using UnityEngine;
 	using UnityEditor;
 	using System;
-	using System.Linq;
 	using System.Collections.Generic;
 	using System.Reflection;
 	using System.ComponentModel;
@@ -19,14 +16,13 @@ namespace Smidgenomics.Unity.UAI.Editor
 	 */
 	internal static class UAIEditorUtils
 	{
-		public static System.Collections.Generic.IEnumerable<Type> GetDerivedTypes(Type baseType)
+		public static IEnumerable<Type> GetDerivedTypes(Type baseType)
 		{
 			List<Type> outTypes = new();
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+
+			foreach (var t in TypeCache.GetTypesDerivedFrom(baseType))
 			{
-				var types = assembly.GetTypes()
-				.Where(t => t.IsSubclassOf(baseType) && !t.IsAbstract);
-				foreach (var t in types)
+				if (!t.IsAbstract)
 				{
 					outTypes.Add(t);
 				}
@@ -44,13 +40,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		public static void OpenScriptEditor(UnityEngine.Object asset)
 		{
-			var stype = asset.GetType();
-			// this seems slightly more tedious than it needs to be, whatever...
-			var isSO = typeof(ScriptableObject).IsAssignableFrom(stype);
-			var script = isSO
-				? MonoScript.FromScriptableObject((ScriptableObject)asset)
-				: MonoScript.FromMonoBehaviour((MonoBehaviour)asset);
-			AssetDatabase.OpenAsset(script);
+			AssetDatabase.OpenAsset(GetObjectMonoscript(asset));
 		}
 
 		public static MonoScript GetObjectMonoscript(UnityEngine.Object asset)
@@ -70,15 +60,23 @@ namespace Smidgenomics.Unity.UAI.Editor
 		{
 			var menu = new GenericMenu();
 
-			var types = UAIEditorUtils.GetDerivedTypes(baseType);
-			
-			menu.AddItem(new GUIContent(defaultLabel), false, fn, null);
-			menu.AddSeparator("");
+			var types = GetDerivedTypes(baseType);
+
+			if (!string.IsNullOrEmpty(defaultLabel))
+			{
+				menu.AddItem(new GUIContent(defaultLabel), false, fn, null);
+				menu.AddSeparator(string.Empty);
+			}
 
 			Assembly currentAssembly = null;
 
 			foreach (var type in types)
 			{
+				if (type.IsDefined(typeof(ObsoleteAttribute)))
+				{
+					continue;
+				}
+
 				if (currentAssembly != type.Assembly)
 				{
 					if (currentAssembly != null)

@@ -64,38 +64,9 @@ namespace Smidgenomics.Unity.UAI.Editor
 	[CustomEditor(typeof(UAIService), true)]
 	internal class _UAIService : _UAIScriptableObject
 	{
-		public override void OnInspectorGUI()
+		protected override void OnInit()
 		{
-			serializedObject.UpdateIfRequiredOrScript();
-
-			EditorGUILayout.BeginVertical(GUI.skin.box);
-			foreach (var prop in _props)
-			{
-				if (prop == null)
-				{
-					continue;
-				}
-				EditorGUILayout.PropertyField(prop);
-			}
-			EditorGUILayout.EndVertical();
-			serializedObject.ApplyModifiedProperties();
-		}
-
-		private List<SP> _props = new();
-
-		private void OnEnable()
-		{
-			_props = new List<SP>();
-			foreach (var f in target.GetType().FindInspectorFields())
-			{
-				var prop = serializedObject.FindProperty(f.Name);
-				_props.Add(prop);
-			}
-			var listProp = serializedObject.FindProperty(nameof(UAIAction._considerations));
-		}
-		
-		private void OnDisable()
-		{
+	
 		}
 
 		

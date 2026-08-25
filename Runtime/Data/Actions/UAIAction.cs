@@ -35,7 +35,7 @@ namespace Smidgenomics.Unity.UAI
 		/// </summary>
 		public virtual float GetActionCooldown()
 		{
-			return UAIDefaults.DEFAULT_ACTION_COOLDOWN;
+			return _defaultCooldown;
 		}
 
 		/// <summary>
@@ -105,10 +105,15 @@ namespace Smidgenomics.Unity.UAI
 		/// <summary>
 		/// When enabled, the action will not be re-scored while it's active (it sustains the same score)
 		/// </summary>
+		[HideInInspector]
 		[SerializeField] internal bool _sustainAction;
 
-		[EditConditionHidden(nameof(_sustainAction))]
+		[EditConditionToggle(nameof(_sustainAction), "Sustain Action")]
 		[SerializeField] internal AnimationCurve _sustainCurve = AnimationCurve.Linear(0, 1, 1, 1);
+
+		// [HideInInspector]
+		[UAIHideOnOverride(nameof(GetActionCooldown))]
+		[SerializeField,Min(0f)] private float _defaultCooldown = UAIDefaults.DEFAULT_ACTION_COOLDOWN;
 
 		[HideInInspector]
 		[SerializeField] internal SOArray<UAIConsideration> _considerations = new();
@@ -146,68 +151,53 @@ namespace Smidgenomics.Unity.UAI.Editor
 {
 	using UnityEngine;
 	using UnityEditor;
-	using System.Collections.Generic;
-	using SP = UnityEditor.SerializedProperty;
 
 	[CustomEditor(typeof(UAIAction), true)]
 	internal class _UAIAction : _UAIScriptableObject
 	{
-		public override void OnInspectorGUI()
+		protected override void OnAfterFields()
 		{
+			// EditorGUILayout.Space();
+			DrawDivider();
 			serializedObject.UpdateIfRequiredOrScript();
-
-			EditorGUILayout.BeginVertical(GUI.skin.box);
-			foreach (var prop in _props)
-			{
-				if (prop == null)
-				{
-					continue;
-				}
-				EditorGUILayout.PropertyField(prop);
-			}
-			EditorGUILayout.EndVertical();
-			serializedObject.ApplyModifiedProperties();
-			EditorGUILayout.Space();
 			_considerationView.OnListGUI();
 			serializedObject.ApplyModifiedProperties();
-
-			DrawInfoMessages();
 		}
 
-		private NestedAssetList<UAIConsideration> _considerationView = null;
-		private List<SP> _props = new();
+		private NestedAssetList<UAIConsideration> _considerationView;
+		private SerializedProperty _defaultCooldown;
+		private GUIContent _foldoutLabel;
 
-		private void OnEnable()
+		protected override void OnInit()
 		{
-			_props = new List<SP>();
-			foreach (var f in target.GetType().FindInspectorFields())
-			{
-				var prop = serializedObject.FindProperty(f.Name);
-				_props.Add(prop);
-			}
 			var listProp = serializedObject.FindProperty(nameof(UAIAction._considerations));
 			_considerationView = CreateConsiderationList(listProp);
 		}
-		
+
 		private void OnDisable()
 		{
 			_considerationView?.DisposeGUI();
 		}
-
-		private void DrawInfoMessages()
-		{
-			if (_considerationView != null && _considerationView.Count == 0)
-			{
-				EditorGUILayout.HelpBox($"Action has no considerations, score will default to {UAIDefaults.DEFAULT_ACTION_SCORE}", MessageType.Info);
-			}
-		}
-
 
 		private static NestedAssetList<UAIConsideration> CreateConsiderationList(SerializedProperty listProp)
 		{
 			NestedAssetList<UAIConsideration> view = new (listProp);
 			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_CONSIDERATION_ICON_GUID;
 			view.DrawTypeIcon = true;
+			view.HeaderLabel = "Action Considerations";
+			view.onDrawNone = rect =>
+			{
+				GUI.Label(rect, "List empty, base score will default to 1.");
+			};
+
+			view.onDrawHeader = rect =>
+			{
+				var icoRect = rect.SliceLeft(rect.height).Resized(-rect.height * 0.2f);
+				UAIEditorAtlas.GetIcon(EUAIAtlasIcon.Consideration).Draw(icoRect);
+				GUI.Label(rect, "Action Considerations", EditorStyles.boldLabel);
+
+			};
+			
 			view.onDrawListItem = (ref Rect rect, SerializedProperty prop, UAIConsideration so) =>
 			{
 				if (!so)

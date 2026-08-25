@@ -16,8 +16,9 @@ namespace Smidgenomics.Unity.UAI
 		[HideInInspector]
 		[SerializeField] internal bool _enabled = true;
 		
-		[Space]
-		[SerializeField] internal string _label = "";
+		// [Space]
+		[HideInInspector]
+		[SerializeField] internal string _label = string.Empty;
 
 		[HideInInspector]
 		[UnityEngine.Serialization.FormerlySerializedAs("_internalID")]
@@ -37,11 +38,13 @@ namespace Smidgenomics.Unity.UAI
 
 namespace Smidgenomics.Unity.UAI.Editor
 {
+
 	using UnityEditor;
 
-	internal abstract class _UAIScriptableObject : Editor
+	[CustomEditor(typeof(UAIScriptableObject), true)]
+	internal abstract class _UAIScriptableObject : _UAIInspector
 	{
-		protected override bool ShouldHideOpenButton() => true;
+
 	}
 }
 

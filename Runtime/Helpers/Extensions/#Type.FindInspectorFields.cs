@@ -36,7 +36,7 @@ namespace Smidgenomics.Unity.UAI
 		/// <summary>
 		/// [Editor] Find all fields that Unity would default render in the inspector
 		/// </summary>
-		public static IEnumerable<FieldInfo> FindInspectorFields<T>(this Type owner) where T : Component
+		public static List<FieldInfo> FindInspectorFields<T>(this Type owner)
 		{
 			// NOTE: doesn't work properly for unity components, flags might need to be different
 
@@ -69,7 +69,7 @@ namespace Smidgenomics.Unity.UAI
 		/// <summary>
 		/// Find all fields that would be rendered by unity in the inspector
 		/// </summary>
-		public static IEnumerable<FieldInfo> FindInspectorFields(this Type owner)
+		public static IReadOnlyList<FieldInfo> FindInspectorFields(this Type owner)
 		{
 			return FindInspectorFields<Component>(owner);
 		}

@@ -56,7 +56,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private NestedAssetList<UAIConsideration> _considerationAssetList = null;
 
-		private void OnEnable()
+		protected override void OnInit()
 		{
 			var listProp = serializedObject.FindProperty(nameof(UAIConsiderationList._considerations));
 			_considerationAssetList = CreateConsiderationList(listProp);

@@ -7,6 +7,7 @@ namespace Smidgenomics.Unity.UAI
 	using System.ComponentModel;
 
 	[DisplayName("Random Weighted")]
+	[System.Serializable]
 	public sealed class UAISelector_RandomWeighted : UAISelector
 	{
 		public override int SelectIndex(int count, Func<int, float> scoreFn)

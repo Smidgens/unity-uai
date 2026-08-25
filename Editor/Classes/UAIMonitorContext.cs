@@ -12,7 +12,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 		public UAIMonitorContext()
 		{
 			_styles = new(UAIEditorStyles.CreateInstance);
-			_iconAtlas = UAIEditorAtlas.Create();
+			// _iconAtlas = UAIEditorAtlas.Create();
 		}
 
 		public UAIEditorStyles Styles => _styles.Value;
