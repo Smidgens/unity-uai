@@ -4,12 +4,29 @@
 
 namespace Smidgenomics.Unity.UAI.Editor
 {
+	using System.Reflection;
 	using UnityEngine;
 	using UnityEditor;
 
 	internal static class UAIEditorGUI
 	{
 		public const float INDENT_WIDTH = 15f;
+
+		private delegate bool DoControlFn(Rect r, int id, bool on, bool hover, GUIContent l, GUIStyle s);
+		private const BindingFlags _STATIC_BF = BindingFlags.Static | BindingFlags.NonPublic;
+
+		private static DoControlFn _doControlFn;
+
+		// wrapper around internal Unity GUI method
+		public static bool DoControl(Rect r, int id, bool on, bool hover, GUIContent l, GUIStyle s)
+		{
+			if (_doControlFn == null)
+			{
+				var m = typeof(GUI).GetMethod(nameof(DoControl), _STATIC_BF);
+				_doControlFn = (DoControlFn)m?.CreateDelegate(typeof(DoControlFn));
+			}
+			return _doControlFn!.Invoke(r, id, on, hover, l, s);
+		}
 
 		public static void TimedPulse(in Rect rect, float startTime)
 		{

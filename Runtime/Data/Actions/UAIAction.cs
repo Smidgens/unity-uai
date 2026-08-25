@@ -109,6 +109,7 @@ namespace Smidgenomics.Unity.UAI
 		[SerializeField] internal bool _sustainAction;
 
 		[EditConditionToggle(nameof(_sustainAction), "Sustain Action")]
+		// [UAICurve(x:0f, y:0f, w:10f, h:5f)]
 		[SerializeField] internal AnimationCurve _sustainCurve = AnimationCurve.Linear(0, 1, 1, 1);
 
 		// [HideInInspector]
@@ -195,7 +196,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 				var icoRect = rect.SliceLeft(rect.height).Resized(-rect.height * 0.2f);
 				UAIEditorAtlas.GetIcon(EUAIAtlasIcon.Consideration).Draw(icoRect);
 				GUI.Label(rect, "Action Considerations", EditorStyles.boldLabel);
-
 			};
 			
 			view.onDrawListItem = (ref Rect rect, SerializedProperty prop, UAIConsideration so) =>
@@ -206,7 +206,23 @@ namespace Smidgenomics.Unity.UAI.Editor
 				}
 				var curveRect = rect.SliceRight(rect.height * 1.5f);
 				EditorGUI.BeginChangeCheck();
-				var changedCurve = EditorGUI.CurveField(curveRect, new AnimationCurve(so._curve.keys));
+				
+				var tMatrix = GUI.matrix;
+
+				EditorGUI.BeginChangeCheck();
+
+				if (so._invert)
+				{
+					GUIUtility.ScaleAroundPivot(new Vector2(-1, 1), curveRect.center);
+				}
+
+				var curveColor = so._invert
+				? Color.blue
+				: Color.green;
+				var clampRange = new Rect(0, 0, 1f, 1f);
+				var changedCurve = EditorGUI.CurveField(curveRect, new AnimationCurve(so._curve.keys), curveColor, clampRange);
+
+				GUI.matrix = tMatrix;
 				if (EditorGUI.EndChangeCheck())
 				{
 					Undo.RecordObject(so, "Change curve");

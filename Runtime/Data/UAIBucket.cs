@@ -85,6 +85,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 			public GUIContent label;
 			public Action fn;
 			public Vector2 size;
+			public int count;
+			public EUAIAtlasIcon icon;
 		}
 
 		private enum DisplayTabs
@@ -96,7 +98,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private DisplayTab[] _displayTabs = Array.Empty<DisplayTab>();
 		private GUIContent[] _tabLabels = Array.Empty<GUIContent>();
-		private GUIStyle _tabBtnStyle;
+		private int[] _tabCounts = Array.Empty<int>();
 		private PrefsHandle_Int _prefsTab = new PrefsHandle_Int($"{nameof(UAIBucket)}.tab");
 		
 		protected override void OnInit()
@@ -105,18 +107,21 @@ namespace Smidgenomics.Unity.UAI.Editor
 			{
 				new DisplayTab
 				{
-					label = new GUIContent("Actions"),
-					fn = DrawTab_Actions
+					label = new GUIContent("Actions", "Actions"),
+					fn = DrawTab_Actions,
+					icon = EUAIAtlasIcon.Action
 				},
 				new DisplayTab
 				{
-					label = new GUIContent("Considerations"),
-					fn = DrawTab_Considerations
+				label = new GUIContent("Considerations", "Considerations"),
+					fn = DrawTab_Considerations,
+					icon = EUAIAtlasIcon.Consideration
 				},
 				new DisplayTab
 				{
-					label = new GUIContent("Services"),
-					fn = DrawTab_Services
+					label = new GUIContent("Services", "Services"),
+					fn = DrawTab_Services,
+					icon = EUAIAtlasIcon.Service
 				},
 				
 			};
@@ -153,44 +158,99 @@ namespace Smidgenomics.Unity.UAI.Editor
 				_bucketConsiderations.DisposeGUI();
 			}
 		}
+		
+		private GUIStyle _tabBtnMid;
+		private GUIStyle _tabBtnLeft;
+		private GUIStyle _tabBtnRight;
+
+		private static GUIStyle InitBtnStyle(GUIStyle b)
+		{
+			return new GUIStyle(b)
+			{
+				alignment = TextAnchor.MiddleCenter,
+				padding = new RectOffset(4,4,2,2),
+				fontSize = (int)(b.fontSize * 0.85),
+				stretchHeight = true,
+				fixedHeight = 0
+			};
+		}
 
 		private void InitGUI()
 		{
-			if (_tabBtnStyle != null)
+			if (_tabBtnMid != null)
 			{
 				return;
 			}
 
-			_tabBtnStyle = new GUIStyle(GUI.skin.button)
-			{
-				alignment = TextAnchor.MiddleLeft,
-			};
-			_tabBtnStyle.fontSize = (int)(_tabBtnStyle.fontSize * 0.4);
+			_tabBtnLeft = InitBtnStyle(EditorStyles.miniButtonLeft);
+			_tabBtnMid = InitBtnStyle(EditorStyles.miniButtonMid);
+			_tabBtnRight = InitBtnStyle(EditorStyles.miniButtonRight);
 
 			for (int i = 0; i < _displayTabs.Length; i++)
 			{
-				var tempLabel = new GUIContent(_displayTabs[i].label.text + " (00)");
-				var size = _tabBtnStyle.CalcSize(tempLabel);
+				var tempLabel = new GUIContent(_displayTabs[i].label.text);
+				var size = _tabBtnMid.CalcSize(tempLabel);
 				_displayTabs[i].size = size;
 			}
 		}
 
+		
 		private void DrawTabs()
 		{
-			var tbHeight = EditorGUIUtility.singleLineHeight * 1.2f;
+			_displayTabs[0].count = _actionAssetList.Count;
+			_displayTabs[1].count = _bucketConsiderations.Count;
+			_displayTabs[2].count = _services.Count;
+			
+			for (int i = 0; i < _displayTabs.Length; i++)
+			{
+				ref DisplayTab tab = ref _displayTabs[i];
+			}
+			
+			var tbHeight = EditorGUIUtility.singleLineHeight * 1.1f;
 			
 			var rect = EditorGUILayout.GetControlRect(GUILayout.Height(1f));
 			rect.position += Vector2.up * 3f;
 			rect.height = tbHeight;
-			
-			_displayTabs[_prefsTab.Value].fn.Invoke();
-			var newTab = GUI.Toolbar(rect, _prefsTab.Value, _tabLabels, _tabBtnStyle,
-				GUI.ToolbarButtonSize.FitToContents);
 
-			if (newTab != _prefsTab.Value)
+			rect.SliceRight(30f);
+
+			_displayTabs[_prefsTab.Value].fn.Invoke();
+			
+			GUI.BeginClip(rect);
+			var clipRect = rect;
+			clipRect.position = default;
+
+			int ii = -1;
+			foreach (var tab in _displayTabs)
 			{
-				_prefsTab.Value = newTab;
+				ii++;
+				var style = _tabBtnMid;
+				if (ii == 0)
+				{
+					style = _tabBtnLeft;
+				}
+				else if (ii == _displayTabs.Length - 1)
+				{
+					style = _tabBtnRight;
+				}
+
+				var label = new GUIContent($"{tab.label.text} ({tab.count})");
+				label.tooltip = tab.label.tooltip;
+
+				var size = style.CalcSize(label);
+
+				var id = EditorGUIUtility.GetControlID(FocusType.Keyboard);
+				var btnRect = clipRect.SliceLeft(size.x);
+
+				var hovered = btnRect.Contains(Event.current.mousePosition);
+				var active = _prefsTab.Value == ii;
+
+				if (UAIEditorGUI.DoControl(btnRect, id, active, hovered, label, style))
+				{
+					_prefsTab.Value = ii;
+				}
 			}
+			GUI.EndClip();
 
 		}
 
@@ -219,7 +279,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_ACTION_ICON_GUID;
 			view.DrawTypeIcon = true;
 
-			view.onDrawNone = r => GUI.Label(r, "No actions");
+			view.onDrawNone = r => GUI.Label(r, "No actions, bucket will be ignored");
 
 			view.onDrawListItem = (ref Rect rect, SerializedProperty prop, UAIAction so) =>
 			{
@@ -255,7 +315,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			NestedAssetList<UAIConsideration> view = new (prop);
 			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_CONSIDERATION_ICON_GUID;
 			view.DrawTypeIcon = true;
-			view.onDrawNone = r => GUI.Label(r, "No bucket considerations");
+			view.onDrawNone = r => GUI.Label(r, "List empty, bucket base score will default to 1");
 			// view.HeaderHeight = 0f;
 			view.onDrawListItem = (ref Rect rect, SerializedProperty itemProp, UAIConsideration so) =>
 			{
@@ -264,8 +324,24 @@ namespace Smidgenomics.Unity.UAI.Editor
 					return;
 				}
 				var curveRect = rect.SliceRight(rect.height * 1.5f);
+				
+				var tMatrix = GUI.matrix;
+
 				EditorGUI.BeginChangeCheck();
-				var changedCurve = EditorGUI.CurveField(curveRect, new AnimationCurve(so._curve.keys));
+
+				if (so._invert)
+				{
+					GUIUtility.ScaleAroundPivot(new Vector2(-1, 1), curveRect.center);
+				}
+				
+				var curveColor = so._invert
+				? Color.blue
+				: Color.green;
+				var clampRange = new Rect(0, 0, 1f, 1f);
+				var changedCurve = EditorGUI.CurveField(curveRect, new AnimationCurve(so._curve.keys), curveColor, clampRange);
+				
+				GUI.matrix = tMatrix;
+				
 				if (EditorGUI.EndChangeCheck())
 				{
 					Undo.RecordObject(so, "Change curve");

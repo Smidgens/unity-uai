@@ -16,7 +16,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			set => WriteValue(value);
 		}
 		
-		protected abstract Func<string, T> PrefsGetter { get;  }
+		protected abstract Func<string, T, T> PrefsGetter { get;  }
 		protected abstract Action<string, T> PrefsSetter { get;  }
 		
 		protected PrefsHandle(string key)
@@ -25,7 +25,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 		}
 		private static T ReadPrefs(PrefsHandle<T> toggle)
 		{
-			toggle._value = toggle.PrefsGetter.Invoke(toggle._key);
+			toggle._value = toggle.PrefsGetter.Invoke(toggle._key, default);
 			toggle._getter = ReadCached;
 			return toggle._value;
 		}
@@ -46,29 +46,29 @@ namespace Smidgenomics.Unity.UAI.Editor
 	{
 		public PrefsHandle_Int(string key) : base(key) {}
 		
-		protected override Func<string, int> PrefsGetter => EditorPrefs.GetInt;
-		protected override Action<string, int> PrefsSetter => EditorPrefs.SetInt;
+		protected override Func<string, int, int> PrefsGetter => SessionState.GetInt;
+		protected override Action<string, int> PrefsSetter => SessionState.SetInt;
 	}
 	
 	internal sealed class PrefsHandle_Bool : PrefsHandle<bool>
 	{
 		public PrefsHandle_Bool(string key) : base(key) {}
-		protected override Func<string, bool> PrefsGetter => EditorPrefs.GetBool;
-		protected override Action<string, bool> PrefsSetter => EditorPrefs.SetBool;
+		protected override Func<string, bool, bool> PrefsGetter => SessionState.GetBool;
+		protected override Action<string, bool> PrefsSetter => SessionState.SetBool;
 	}
 	
 	internal sealed class PrefsHandle_Float : PrefsHandle<float>
 	{
 		public PrefsHandle_Float(string key) : base(key) {}
-		protected override Func<string, float> PrefsGetter => EditorPrefs.GetFloat;
-		protected override Action<string, float> PrefsSetter => EditorPrefs.SetFloat;
+		protected override Func<string, float, float> PrefsGetter => SessionState.GetFloat;
+		protected override Action<string, float> PrefsSetter => SessionState.SetFloat;
 	}
 
 	internal sealed class PrefsHandle_String : PrefsHandle<string>
 	{
 		public PrefsHandle_String(string key) : base(key) {}
-		protected override Func<string, string> PrefsGetter => EditorPrefs.GetString;
-		protected override Action<string, string> PrefsSetter => EditorPrefs.SetString;
+		protected override Func<string, string, string> PrefsGetter => SessionState.GetString;
+		protected override Action<string, string> PrefsSetter => SessionState.SetString;
 	}
 }
 
