@@ -100,7 +100,10 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private GUIContent[] _tabLabels = Array.Empty<GUIContent>();
 		private int[] _tabCounts = Array.Empty<int>();
 		private PrefsHandle_Int _prefsTab = new PrefsHandle_Int($"{nameof(UAIBucket)}.tab");
-		
+		private GUIStyle _tabBtnMid;
+		private GUIStyle _tabBtnLeft;
+		private GUIStyle _tabBtnRight;
+
 		protected override void OnInit()
 		{
 			_displayTabs = new DisplayTab[]
@@ -113,7 +116,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 				},
 				new DisplayTab
 				{
-				label = new GUIContent("Considerations", "Considerations"),
+					label = new GUIContent("Considerations", "Considerations"),
 					fn = DrawTab_Considerations,
 					icon = EUAIAtlasIcon.Consideration
 				},
@@ -158,17 +161,13 @@ namespace Smidgenomics.Unity.UAI.Editor
 				_bucketConsiderations.DisposeGUI();
 			}
 		}
-		
-		private GUIStyle _tabBtnMid;
-		private GUIStyle _tabBtnLeft;
-		private GUIStyle _tabBtnRight;
 
 		private static GUIStyle InitBtnStyle(GUIStyle b)
 		{
 			return new GUIStyle(b)
 			{
-				alignment = TextAnchor.MiddleCenter,
-				padding = new RectOffset(4,4,2,2),
+				alignment = TextAnchor.UpperCenter,
+				padding = new RectOffset(4,4,4,4),
 				fontSize = (int)(b.fontSize * 0.85),
 				stretchHeight = true,
 				fixedHeight = 0
@@ -193,7 +192,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 				_displayTabs[i].size = size;
 			}
 		}
-
 		
 		private void DrawTabs()
 		{
@@ -206,11 +204,17 @@ namespace Smidgenomics.Unity.UAI.Editor
 				ref DisplayTab tab = ref _displayTabs[i];
 			}
 			
-			var tbHeight = EditorGUIUtility.singleLineHeight * 1.1f;
+			var tbHeight = 21f;
+
+			var sepColor = EditorGUIUtility.isProSkin
+			? (Color.white * 0.15f).Fade(1f)
+			: (Color.white * 0.6f).Fade(1f);
 			
 			var rect = EditorGUILayout.GetControlRect(GUILayout.Height(1f));
 			rect.position += Vector2.up * 3f;
 			rect.height = tbHeight;
+
+			var sepRect = rect.SliceBottom(1.5f);
 
 			rect.SliceRight(30f);
 
@@ -241,6 +245,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 				var id = EditorGUIUtility.GetControlID(FocusType.Keyboard);
 				var btnRect = clipRect.SliceLeft(size.x);
+				btnRect.height *= 1.5f;
 
 				var hovered = btnRect.Contains(Event.current.mousePosition);
 				var active = _prefsTab.Value == ii;
@@ -251,7 +256,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 				}
 			}
 			GUI.EndClip();
-
+			
+			EditorGUI.DrawRect(sepRect, sepColor);
 		}
 
 		private void DrawTab_Considerations()
