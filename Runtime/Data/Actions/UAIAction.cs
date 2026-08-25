@@ -193,8 +193,13 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 			view.onDrawHeader = rect =>
 			{
+				var color = EditorGUIUtility.isProSkin
+				? Color.white
+				: Color.black * 0.8f;
 				var icoRect = rect.SliceLeft(rect.height).Resized(-rect.height * 0.2f);
-				UAIEditorAtlas.GetIcon(EUAIAtlasIcon.Consideration).Draw(icoRect);
+				UAIEditorAtlas.GetIcon(EUAIAtlasIcon.Consideration).Draw(icoRect, color);
+			
+				
 				GUI.Label(rect, "Action Considerations", EditorStyles.boldLabel);
 			};
 			

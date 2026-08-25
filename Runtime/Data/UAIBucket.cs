@@ -110,19 +110,19 @@ namespace Smidgenomics.Unity.UAI.Editor
 			{
 				new DisplayTab
 				{
-					label = new GUIContent("Actions", "Actions"),
+					label = new GUIContent("<b>Actions</b>", "Actions"),
 					fn = DrawTab_Actions,
 					icon = EUAIAtlasIcon.Action
 				},
 				new DisplayTab
 				{
-					label = new GUIContent("Considerations", "Considerations"),
+					label = new GUIContent("<b>Considerations</b>", "Considerations"),
 					fn = DrawTab_Considerations,
 					icon = EUAIAtlasIcon.Consideration
 				},
 				new DisplayTab
 				{
-					label = new GUIContent("Services", "Services"),
+					label = new GUIContent("<b>Services</b>", "Services"),
 					fn = DrawTab_Services,
 					icon = EUAIAtlasIcon.Service
 				},
@@ -170,7 +170,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 				padding = new RectOffset(4,4,4,4),
 				fontSize = (int)(b.fontSize * 0.85),
 				stretchHeight = true,
-				fixedHeight = 0
+				fixedHeight = 0,
+				richText = true
 			};
 		}
 
@@ -238,7 +239,9 @@ namespace Smidgenomics.Unity.UAI.Editor
 					style = _tabBtnRight;
 				}
 
-				var label = new GUIContent($"{tab.label.text} ({tab.count})");
+				var countColor = ColorUtility.ToHtmlStringRGBA(style.normal.textColor * 0.9f);
+
+				var label = new GUIContent($"{tab.label.text} <color=#{countColor}>({tab.count})</color>");
 				label.tooltip = tab.label.tooltip;
 
 				var size = style.CalcSize(label);
