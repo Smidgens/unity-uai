@@ -1,13 +1,9 @@
 // smidgens @ github
 
-// resharper disable all
-
 namespace Smidgenomics.Unity.UAI
 {
 	using System;
 	using UnityEngine;
-	using System.Collections.Generic;
-	using UnityEngine.Serialization;
 
 	/// <summary>
 	/// Houses list of actions
@@ -32,7 +28,7 @@ namespace Smidgenomics.Unity.UAI
 		[HideInInspector]
 		[SerializeField] internal UAIService[] _externalServices = Array.Empty<UAIService>();
 
-		[InstancedReference(defaultValueLabel = "Default")]
+		[UAIInstancedReference(defaultValueLabel = "Default")]
 		[SerializeReference]
 		internal UAISelector _actionSelector = new UAISelector_TopScore();
 
@@ -50,11 +46,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using UnityEngine;
 	using UnityEditor;
 	using System;
-	using System.Linq;
-	using System.Collections.Generic;
-	using UObject = UnityEngine.Object;
-	using SP = UnityEditor.SerializedProperty;
-	using RL = UnityEditorInternal.ReorderableList;
 
 	[CustomEditor(typeof(UAIBucket))]
 	internal sealed class _UAIBucket : _UAIScriptableObject
@@ -75,90 +66,63 @@ namespace Smidgenomics.Unity.UAI.Editor
 			return true;
 		}
 
-		private NestedAssetList<UAIAction> _actionAssetList = null;
-		private NestedAssetList<UAIConsideration> _bucketConsiderations = null;
-		private NestedAssetList<UAIService> _services = null;
-		private IReadOnlyList<SerializedProperty> _props = null;
-
 		private struct DisplayTab
 		{
-			public GUIContent label;
-			public Action fn;
-			public Vector2 size;
-			public int count;
-			public EUAIAtlasIcon icon;
+			public string field;
+			public Type type;
+			public string emptyText;
+			public string nameOverride;
+			public NestedAssetList list;
+			public GUIContent headerLabel;
 		}
 
-		private enum DisplayTabs
+		private DisplayTab[] _displayTabs =
 		{
-			Considerations,
-			Actions,
-			Services
-		}
-
-		private DisplayTab[] _displayTabs = Array.Empty<DisplayTab>();
-		private GUIContent[] _tabLabels = Array.Empty<GUIContent>();
-		private int[] _tabCounts = Array.Empty<int>();
-		private PrefsHandle_Int _prefsTab = new PrefsHandle_Int($"{nameof(UAIBucket)}.tab");
+			new()
+			{
+				field = nameof(UAIBucket._actions),
+				type = typeof(UAIAction),
+				emptyText = "No actions, bucket will be ignored"
+			},
+			new()
+			{
+				field = nameof(UAIBucket._bucketConsiderations),
+				type = typeof(UAIConsideration),
+				nameOverride = "Considerations",
+				emptyText = "List empty, bucket base score will default to 1"
+			},
+			new()
+			{
+				field = nameof(UAIBucket._services),
+				type = typeof(UAIService),
+				emptyText = "No services"
+			},
+		};
+		private readonly PrefsHandle_Int _prefsTab = new ($"{nameof(UAIBucket)}.tab");
 		private GUIStyle _tabBtnMid;
 		private GUIStyle _tabBtnLeft;
 		private GUIStyle _tabBtnRight;
 
 		protected override void OnInit()
 		{
-			_displayTabs = new DisplayTab[]
+			for (int i = 0; i < _displayTabs.Length; i++)
 			{
-				new DisplayTab
-				{
-					label = new GUIContent("<b>Actions</b>", "Actions"),
-					fn = DrawTab_Actions,
-					icon = EUAIAtlasIcon.Action
-				},
-				new DisplayTab
-				{
-					label = new GUIContent("<b>Considerations</b>", "Considerations"),
-					fn = DrawTab_Considerations,
-					icon = EUAIAtlasIcon.Consideration
-				},
-				new DisplayTab
-				{
-					label = new GUIContent("<b>Services</b>", "Services"),
-					fn = DrawTab_Services,
-					icon = EUAIAtlasIcon.Service
-				},
-				
-			};
-
-			_tabLabels = _displayTabs.Select(x => x.label).ToArray();
-			
-			var listFields = DrawAssetListAttribute.FindFieldsForType(target.GetType());
-
-			var pl = new List<SP>();
-			foreach (var f in target.GetType().FindInspectorFields<Component>())
-			{
-				var p = serializedObject.FindProperty(f.Name);
-				if (p != null)
-				{
-					pl.Add(p);
-				}
+				ref DisplayTab tab = ref _displayTabs[i];
+				var prop = serializedObject.FindProperty(tab.field);
+				var tName = tab.nameOverride ?? prop.displayName;
+				tab.list = CreateAssetList(prop, tab);
+				tab.headerLabel = new GUIContent($"<b>{tName}</b>", tName);
 			}
-			_props = pl;
-			_actionAssetList = CreateActionList(serializedObject.FindProperty(nameof(UAIBucket._actions)));
-			_bucketConsiderations = CreateConsiderationList(serializedObject.FindProperty(nameof(UAIBucket._bucketConsiderations)));
-			_services = CreateServiceList(serializedObject.FindProperty(nameof(UAIBucket._services)));
 		}
 
 		private void OnDisable()
 		{
-			// cleanup
-			if (_actionAssetList != null)
+			foreach (var t in _displayTabs)
 			{
-				_actionAssetList.DisposeGUI();
-			}
-
-			if (_bucketConsiderations != null)
-			{
-				_bucketConsiderations.DisposeGUI();
+				if (t.list != null)
+				{
+					t.list.DisposeGUI();
+				}
 			}
 		}
 
@@ -181,36 +145,15 @@ namespace Smidgenomics.Unity.UAI.Editor
 			{
 				return;
 			}
-
 			_tabBtnLeft = InitBtnStyle(EditorStyles.miniButtonLeft);
 			_tabBtnMid = InitBtnStyle(EditorStyles.miniButtonMid);
 			_tabBtnRight = InitBtnStyle(EditorStyles.miniButtonRight);
-
-			for (int i = 0; i < _displayTabs.Length; i++)
-			{
-				var tempLabel = new GUIContent(_displayTabs[i].label.text);
-				var size = _tabBtnMid.CalcSize(tempLabel);
-				_displayTabs[i].size = size;
-			}
 		}
 		
 		private void DrawTabs()
 		{
-			_displayTabs[0].count = _actionAssetList.Count;
-			_displayTabs[1].count = _bucketConsiderations.Count;
-			_displayTabs[2].count = _services.Count;
-			
-			for (int i = 0; i < _displayTabs.Length; i++)
-			{
-				ref DisplayTab tab = ref _displayTabs[i];
-			}
-			
 			var tbHeight = 21f;
 
-			var sepColor = EditorGUIUtility.isProSkin
-			? (Color.white * 0.15f).Fade(1f)
-			: (Color.white * 0.6f).Fade(1f);
-			
 			var rect = EditorGUILayout.GetControlRect(GUILayout.Height(1f));
 			rect.position += Vector2.up * 3f;
 			rect.height = tbHeight;
@@ -219,7 +162,10 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 			rect.SliceRight(30f);
 
-			_displayTabs[_prefsTab.Value].fn.Invoke();
+			var currentList = _displayTabs[_prefsTab.Value].list;
+
+			currentList.OnListGUI();
+			serializedObject.ApplyModifiedProperties();
 			
 			GUI.BeginClip(rect);
 			var clipRect = rect;
@@ -241,12 +187,14 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 				var countColor = ColorUtility.ToHtmlStringRGBA(style.normal.textColor * 0.9f);
 
-				var label = new GUIContent($"{tab.label.text} <color=#{countColor}>({tab.count})</color>");
-				label.tooltip = tab.label.tooltip;
+				var label = new GUIContent($"{tab.headerLabel.text} <color=#{countColor}>({tab.list.Count})</color>")
+				{
+					tooltip = tab.headerLabel.tooltip
+				};
 
 				var size = style.CalcSize(label);
 
-				var id = EditorGUIUtility.GetControlID(FocusType.Keyboard);
+				var id = GUIUtility.GetControlID(FocusType.Keyboard);
 				var btnRect = clipRect.SliceLeft(size.x);
 				btnRect.height *= 1.5f;
 
@@ -259,112 +207,14 @@ namespace Smidgenomics.Unity.UAI.Editor
 				}
 			}
 			GUI.EndClip();
-			
-			EditorGUI.DrawRect(sepRect, sepColor);
+
+			EditorGUI.DrawRect(sepRect, UAIEditorGUI.DIVIDER_COLOR);
 		}
 
-		private void DrawTab_Considerations()
+		private static NestedAssetList CreateAssetList(SerializedProperty prop, in DisplayTab tab)
 		{
-			_bucketConsiderations.OnListGUI();
-			serializedObject.ApplyModifiedProperties();
-		}
-
-		private void DrawTab_Actions()
-		{
-			_actionAssetList.OnListGUI();
-			serializedObject.ApplyModifiedProperties();
-		}
-
-		private void DrawTab_Services()
-		{
-			_services.OnListGUI();
-			serializedObject.ApplyModifiedProperties();
-		}
-
-		private static NestedAssetList<UAIAction> CreateActionList(SerializedProperty prop)
-		{
-			var view = new NestedAssetList<UAIAction>(prop);
-
-			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_ACTION_ICON_GUID;
-			view.DrawTypeIcon = true;
-
-			view.onDrawNone = r => GUI.Label(r, "No actions, bucket will be ignored");
-
-			view.onDrawListItem = (ref Rect rect, SerializedProperty prop, UAIAction so) =>
-			{
-				var wrect = rect.SliceRight(EditorGUIUtility.singleLineHeight * 2);
-				var newWeight = Mathf.Max(EditorGUI.FloatField(wrect, so._weight), 0f);
-				if (newWeight != so._weight)
-				{
-					EditorApplication.delayCall += () =>
-					{
-						Undo.RecordObject(so, "Change weight");
-						so._weight = newWeight;
-					};
-				}
-			};
-			return view;
-		}
-
-		private static NestedAssetList<UAIService> CreateServiceList(SerializedProperty prop)
-		{
-			var view = new NestedAssetList<UAIService>(prop);
-			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_SERVICE_ICON_GUID;
-			view.DrawTypeIcon = true;
-			view.onDrawNone = r => GUI.Label(r, "No services");
-			view.onDrawListItem = (ref Rect rect, SerializedProperty prop, UAIService so) =>
-			{
-			
-			};
-			return view;
-		}
-
-		private static NestedAssetList<UAIConsideration> CreateConsiderationList(SerializedProperty prop)
-		{
-			NestedAssetList<UAIConsideration> view = new (prop);
-			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_CONSIDERATION_ICON_GUID;
-			view.DrawTypeIcon = true;
-			view.onDrawNone = r => GUI.Label(r, "List empty, bucket base score will default to 1");
-			// view.HeaderHeight = 0f;
-			view.onDrawListItem = (ref Rect rect, SerializedProperty itemProp, UAIConsideration so) =>
-			{
-				if (!so)
-				{
-					return;
-				}
-				var curveRect = rect.SliceRight(rect.height * 1.5f);
-				
-				var tMatrix = GUI.matrix;
-
-				EditorGUI.BeginChangeCheck();
-
-				if (so._invert)
-				{
-					GUIUtility.ScaleAroundPivot(new Vector2(-1, 1), curveRect.center);
-				}
-				
-				var curveColor = so._invert
-				? Color.blue
-				: Color.green;
-				var clampRange = new Rect(0, 0, 1f, 1f);
-				var changedCurve = EditorGUI.CurveField(curveRect, new AnimationCurve(so._curve.keys), curveColor, clampRange);
-				
-				GUI.matrix = tMatrix;
-				
-				if (EditorGUI.EndChangeCheck())
-				{
-					Undo.RecordObject(so, "Change curve");
-					so._curve = changedCurve;
-				}
-				
-				var invertRect = rect.SliceRight(60f);
-				var newInvert = EditorGUI.ToggleLeft(invertRect, new GUIContent("Invert"), so._invert);
-				if (newInvert != so._invert)
-				{
-					Undo.RecordObject(so, "Toggle inverted");
-					so._invert = newInvert;
-				}
-			};
+			var view = new NestedAssetList(prop, tab.type);
+			view.EmptyText = tab.emptyText;
 			return view;
 		}
 

@@ -13,53 +13,42 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using UnityEditorInternal;
 	using Object = UnityEngine.Object;
 
-	internal sealed class NestedAssetList<T> where T : UAIScriptableObject
+	internal sealed class NestedAssetList
 	{
-		public delegate void ListItemDrawFn(ref Rect rect, SerializedProperty prop, T item);
-		public delegate void HeaderCallback(Rect rect);
-
-		public ListItemDrawFn onDrawListItem = null;
-		public HeaderCallback onDrawHeader;
-		public HeaderCallback onDrawNone;
-
-		public bool IsIndexSelected(int index) => _assetList.IsSelected(index);
-		
-		public bool DrawTypeIcon { get; set; }
-
-		public float HeaderHeight
-		{
-			get => _assetList.headerHeight;
-			set => _assetList.headerHeight = value;
-		}
-
 		public int Count => _assetList.count;
-		
 		public string HeaderLabel { get; set; }
+		public Type ElementType { get; }
+		public string EmptyText { get; set; } = "List is Empty";
+		public EUAIAtlasIcon HeaderIcon { get; set; } = EUAIAtlasIcon.None;
 
-		public string DefaultTypeIconGUID
+		public static NestedAssetList Create(Type elementType, SerializedProperty prop)
 		{
-			get => _defaultIconGuidGuid;
-			set
+			if (!typeof(UAIScriptableObject).IsAssignableFrom(elementType))
 			{
-				_defaultIconGuidGuid = value;
-				if (_defaultIconGuidGuid == null)
-				{
-					_defaultTypeIcon = null;
-					return;
-				}
-				var iconGuid = value;
-				_defaultTypeIcon = new Lazy<Texture>(() =>
-				{
-					return AssetDatabase.LoadAssetAtPath<Texture>(AssetDatabase.GUIDToAssetPath(iconGuid));
-				});
+				return null;
 			}
+			return new NestedAssetList(prop, elementType);
 		}
 
-		public NestedAssetList(SerializedProperty prop)
+		public NestedAssetList(SerializedProperty prop, Type elementType)
 		{
+			ElementType = elementType;
+
+			var inlineFields = new List<(FieldInfo, float)>();
+			var bFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+			foreach (var attr in ElementType.GetCustomAttributes<UAIListFieldAttribute>())
+			{
+				var field = ElementType.GetField(attr.field, bFlags);
+				if (field != null)
+				{
+					inlineFields.Add((field, attr.width));
+				}
+			}
+
+			_inlineFields = inlineFields;
 			_outerProp = prop;
 			_arrayProp = prop.FindPropertyRelative(nameof(SOArray<UAIScriptableObject>._array));
-			_addContext = UAIEditorUtils.CreateTypeMenu(typeof(T), OnAddOption, null);
+			_addContext = UAIEditorUtils.CreateTypeMenu(ElementType, OnAddOption, null);
 			_assetList = new ReorderableList(_arrayProp.serializedObject, _arrayProp)
 			{
 				drawHeaderCallback = DrawHeader,
@@ -67,21 +56,18 @@ namespace Smidgenomics.Unity.UAI.Editor
 				displayAdd = false,
 				displayRemove = false,
 				draggable = true,
-				elementHeightCallback = i => EditorGUIUtility.singleLineHeight
+				elementHeightCallback = GetItemHeight,
+				drawNoneElementCallback = DrawEmpty,
+				footerHeight = 0f
 			};
-			_assetList.drawNoneElementCallback = rect =>
-			{
-				if (onDrawNone != null)
-				{
-					onDrawNone.Invoke(rect);
-				}
-				else
-				{
-					GUI.Label(rect, "List is Empty");
-				}
-			};
-			_assetList.footerHeight = 0f;
 		}
+
+		private void DrawEmpty(Rect r)
+		{
+			GUI.Label(r, EmptyText);
+		}
+
+		private static float GetItemHeight(int _) => EditorGUIUtility.singleLineHeight;
 
 		// 
 		public void OnListGUI()
@@ -90,7 +76,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			{
 				return;
 			}
-
+			
 			_assetList.serializedProperty.serializedObject.UpdateIfRequiredOrScript();
 			_assetList.DoLayoutList();
 			_assetList.serializedProperty.serializedObject.ApplyModifiedProperties();
@@ -117,32 +103,34 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private readonly SerializedProperty _outerProp;
 		private readonly SerializedProperty _arrayProp;
 		private Editor _childInspector;
-		private string _defaultIconGuidGuid;
-		private Lazy<Texture> _defaultTypeIcon;
+		private string _defaultIconGuid;
 		private GUIContent _contextIcon;
 		private float _ctxButtonHeight;
 		private readonly GenericMenu _addContext;
 		private readonly GUIContent _addBtn = EditorGUIUtility.IconContent("Toolbar Plus More");
+		private readonly IReadOnlyList<(FieldInfo, float)> _inlineFields;
 
-		private Lazy<GUIStyle> _headerLabelStyle = new(() =>
+		// serialized 
+		private readonly Dictionary<Object, SerializedObject> _serializedObjects = new();
+
+		private void RemoveSerializedObject(Object target)
 		{
-			var color = EditorStyles.largeLabel.normal.textColor;
+			_serializedObjects.Remove(target);
+		}
 
-			if (EditorGUIUtility.isProSkin)
+		private SerializedObject GetSerializedObject(Object target)
+		{
+			if (!target)
 			{
-				color = Color.white * 0.9f;
+				return null;
 			}
-			
-			var s = new GUIStyle(EditorStyles.largeLabel)
+			if (!_serializedObjects.TryGetValue(target, out var so))
 			{
-				fontStyle = FontStyle.Bold,
-				normal =
-				{
-					textColor = color
-				}
-			};
-			return s;
-		});
+				so = new SerializedObject(target);
+				_serializedObjects[target] = so;
+			}
+			return so;
+		}
 
 		private string GetDisplayName()
 		{
@@ -164,15 +152,12 @@ namespace Smidgenomics.Unity.UAI.Editor
 			btnRect.height = btnSize.y;
 			btnRect.center = btnCenter;
 
-			if (onDrawHeader != null)
+			if (HeaderIcon != EUAIAtlasIcon.None)
 			{
-				onDrawHeader.Invoke(rect);
+				var icoRect = rect.SliceLeft(rect.height).Resized(-rect.height * 0.2f);
+				UAIEditorAtlas.GetIcon(EUAIAtlasIcon.Consideration).Draw(icoRect, UAIEditorGUI.ICON_COLOR);
 			}
-			else
-			{
-				EditorGUI.LabelField(rect, GetDisplayName(), _headerLabelStyle.Value);
-			}
-
+			GUI.Label(rect, GetDisplayName(), EditorStyles.boldLabel);
 			if (GUI.Button(btnRect, _addBtn, EditorStyles.iconButton))
 			{
 				_addContext.DropDown(btnRect);
@@ -180,9 +165,9 @@ namespace Smidgenomics.Unity.UAI.Editor
 			
 		}
 
-		private static readonly GUIContent _LB_EDIT_SCRIPT = new ("Edit Script");
+		private readonly GUIContent _LB_EDIT_SCRIPT = new ("Edit Script...");
 
-		private void DrawContextButton(Rect rect, T asset, int index)
+		private void DrawContextButton(Rect rect, UAIScriptableObject asset, int index)
 		{
 			if (_contextIcon == null)
 			{
@@ -199,7 +184,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			{
 				var m = new GenericMenu();
 
-				if (CanEditScript(asset.GetType()))
+				if (UAIEditorUtils.CanEditScriptForType(asset.GetType()))
 				{
 					m.AddItem(_LB_EDIT_SCRIPT, false, () => UAIEditorUtils.OpenScriptEditor(asset));
 				}
@@ -213,20 +198,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 		}
 
-		private static bool CanEditScript(Type type)
-		{
-			// TODO: Only return false if script was installed via package manager
-			if (type.Assembly == typeof(UAIAction).Assembly)
-			{
-				#if SM_DEV
-				return true;
-				#else
-				return false;
-				#endif
-			}
-			return true;
-		}
-
 		private void RemoveAtIndex(int i)
 		{
 			var arrItem = _assetList.serializedProperty.GetArrayElementAtIndex(i);
@@ -236,6 +207,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			_assetList.serializedProperty.serializedObject.ApplyModifiedProperties();
 			if (asset)
 			{
+				RemoveSerializedObject(asset);
 				List<UAIScriptableObject> destroyList = new() { asset };
 				asset.GatherNestedAssets(destroyList);
 				destroyList.ForEach(Undo.DestroyObjectImmediate);
@@ -249,6 +221,15 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private void EnsureInspector()
 		{
+			if (_assetList.index >= _assetList.count)
+			{
+				_assetList.index = _assetList.count - 1;
+			}
+			else if (_assetList.index < 0)
+			{
+				_assetList.index = 0;
+			}
+			
 			var i = _assetList.index;
 			var currentArrItem = i >= 0 && i < _arrayProp.arraySize
 			? _arrayProp.GetArrayElementAtIndex(i)
@@ -275,10 +256,15 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private void DrawListItem(Rect rect, int index, bool active, bool focused)
 		{
+
+			var c = rect.center;
+			rect.height = EditorGUIUtility.singleLineHeight;
+			rect.center = c;
+			
 			SerializedProperty prop = _arrayProp.GetArrayElementAtIndex(index);
 			SerializedProperty obProp = prop.FindPropertyRelative("item");
 
-			var asset = obProp.objectReferenceValue as T;
+			var asset = obProp.objectReferenceValue as UAIScriptableObject;
 
 			if (!asset)
 			{
@@ -286,12 +272,9 @@ namespace Smidgenomics.Unity.UAI.Editor
 				return;
 			}
 
-			if (DrawTypeIcon)
-			{
-				var iconRect = rect.SliceLeft(rect.height);
-				rect.SliceLeft(EditorGUIUtility.standardVerticalSpacing);
-				DrawIcon(iconRect, asset);
-			}
+			var iconRect = rect.SliceLeft(rect.height);
+			rect.SliceLeft(EditorGUIUtility.standardVerticalSpacing);
+			DrawIcon(iconRect, asset);
 
 			var ctxRect = rect.SliceRight(rect.height * 0.6f);
 			rect.SliceRight(EditorGUIUtility.standardVerticalSpacing);
@@ -307,28 +290,37 @@ namespace Smidgenomics.Unity.UAI.Editor
 					asset._enabled = newEnabled;
 				};
 			}
-			var labelRect = rect;
-			labelRect.height = EditorGUIUtility.singleLineHeight;
-			labelRect.center = rect.center;
 
-			if (onDrawListItem != null)
+			var so = GetSerializedObject(asset);
+			so.UpdateIfRequiredOrScript();
+
+			foreach (var (f, w) in _inlineFields)
 			{
-				onDrawListItem.Invoke(ref labelRect, prop, asset);
-			}
+				var p = so.FindProperty(f.Name);
+				if (p == null)
+				{
+					continue;
+				}
+				var pRect = rect.SliceRight(w);
+				EditorGUI.PropertyField(pRect, p, GUIContent.none);
+				rect.SliceRight(EditorGUIUtility.standardVerticalSpacing);
 
-			labelRect.SliceRight(EditorGUIUtility.standardVerticalSpacing);
+			}
+			so.ApplyModifiedProperties();
+
+			rect.SliceRight(EditorGUIUtility.standardVerticalSpacing);
 			
-			DoItemLabel(labelRect, index, asset, focused);
+			DoItemLabel(rect, index, asset, focused);
 		}
 
+		// fields for godawful label editing logic
 		private int _labelEditIndex = -1;
 		private (int, double) _lastMouseDown;
 		private const double _DOUBLE_CLICK_THRESHOLD = 0.2;
 		private const string _LABEL_CONTROL_NAME = "asset_label";
-
 		private bool _didRename;
 
-		private void DoItemLabel(Rect rect, int i, T asset, bool focused)
+		private void DoItemLabel(Rect rect, int i, UAIScriptableObject asset, bool focused)
 		{
 			// Note: this is a mess
 
@@ -377,7 +369,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 					GUI.SetNextControlName(_LABEL_CONTROL_NAME);
 					var newLabel = EditorGUI.DelayedTextField(rect, asset._label);
 
-					
 					if (EditorGUI.EndChangeCheck())
 					{
 						_labelEditIndex = -1;
@@ -421,7 +412,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 			
 			
-
 			return type.Name;
 		} 
 
@@ -452,14 +442,11 @@ namespace Smidgenomics.Unity.UAI.Editor
 			idProp.stringValue = newAsset._id;
 			obProp.objectReferenceValue = newAsset;
 			arrayProp.serializedObject.ApplyModifiedProperties();
-
-			// _assetList.index = _assetList.count - 1;
 			_assetList.Select(_assetList.count - 1);
 			_assetList.GrabKeyboardFocus();
-
 		}
 
-		private void DrawIcon(Rect rect, T asset)
+		private void DrawIcon(Rect rect, UAIScriptableObject asset)
 		{
 			rect.Resize(-rect.height * 0.15f);
 			var c = Color.white;
@@ -469,7 +456,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 			UAIEditorGUI.DrawTypeIcon(rect, asset, c);
 		}
-
 	}
 	
 	

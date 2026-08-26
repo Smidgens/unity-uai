@@ -25,7 +25,7 @@ namespace Smidgenomics.Unity.UAI
 			return value.floatValue.ToString(CultureInfo.InvariantCulture);
 		}
 		
-		[SerializeReference, InstancedReference]
+		[SerializeReference, UAIInstancedReference]
 		private UAIConstraint_Float _constraint;
 	
 	}

@@ -31,7 +31,7 @@ namespace Smidgenomics.Unity.UAI
 			return value.objectRef.ToString();
 		}
 
-		[SerializeReference, InstancedReference]
+		[SerializeReference, UAIInstancedReference]
 		private UAIConstraint_Object _constraint = new UAIConstraint_Object_BaseType();
 
 	}

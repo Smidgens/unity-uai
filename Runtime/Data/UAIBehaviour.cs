@@ -26,7 +26,7 @@ namespace Smidgenomics.Unity.UAI
 			[UAIIndent]
 			[FormerlySerializedAs("overrideSelector")]
 			[EditConditionToggle(nameof(enableSelector))]
-			[SerializeReference, InstancedReference]
+			[SerializeReference, UAIInstancedReference]
 			public UAISelector selector;
 		
 			[UAIIndent]
@@ -40,7 +40,7 @@ namespace Smidgenomics.Unity.UAI
 			[HideInInspector] public bool enableSelector;
 		}
 
-		[SerializeReference, InstancedReference(defaultValueLabel = "Default")]
+		[SerializeReference, UAIInstancedReference(defaultValueLabel = "Default")]
 		internal UAISelector _bucketSelector = new UAISelector_TopScore();
 		
 		[UAIExpand(true)]

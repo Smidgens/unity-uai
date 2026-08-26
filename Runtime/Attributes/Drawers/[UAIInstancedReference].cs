@@ -10,7 +10,7 @@ namespace Smidgenomics.Unity.UAI
 
 	[AttributeUsage(AttributeTargets.Field)]
 	[Conditional("UNITY_EDITOR")]
-	internal sealed class InstancedReferenceAttribute : PropertyAttribute
+	internal sealed class UAIInstancedReferenceAttribute : PropertyAttribute
 	{
 		public string defaultValueLabel { get; set; } = "(none)";
 	}
@@ -29,8 +29,8 @@ namespace Smidgenomics.Unity.UAI
 	using System.ComponentModel;
 	using UObject = UnityEngine.Object;
 
-	[CustomPropertyDrawer(typeof(InstancedReferenceAttribute))]
-	internal class _InstancedReferenceAttribute : PropertyDrawer
+	[CustomPropertyDrawer(typeof(UAIInstancedReferenceAttribute))]
+	internal sealed class _UAIInstancedReferenceAttribute : PropertyDrawer
 	{
 		public override void OnGUI(Rect pos, SerializedProperty prop, GUIContent l)
 		{
@@ -98,7 +98,7 @@ namespace Smidgenomics.Unity.UAI
 		{
 			Type currentType = prop.managedReferenceValue?.GetType();
 
-			var defLabel = (attribute as InstancedReferenceAttribute).defaultValueLabel;
+			var defLabel = (attribute as UAIInstancedReferenceAttribute).defaultValueLabel;
 
 			var btnLabel = currentType != null
 			? currentType.Name

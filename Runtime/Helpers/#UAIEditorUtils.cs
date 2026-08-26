@@ -55,6 +55,20 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 			return script;
 		}
+		
+		public static bool CanEditScriptForType(Type type)
+		{
+			// TODO: Only return false if script was installed via package manager
+			if (type.Assembly == typeof(UAIAction).Assembly)
+			{
+#if SM_DEV
+				return true;
+#else
+				return false;
+#endif
+			}
+			return true;
+		}
 
 		public static GenericMenu CreateTypeMenu(Type baseType,  GenericMenu.MenuFunction2 fn, string defaultLabel = "(none)")
 		{
@@ -91,11 +105,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 				menu.AddItem(dname, false, fn,  type);
 			}
 			return menu;
-		}
-
-		public static void ReimportAsset(UnityEngine.Object asset)
-		{
-			AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(asset));
 		}
 
 		private static GUIContent GetTypeLabel(Type type)

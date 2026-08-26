@@ -16,6 +16,14 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private const BindingFlags _STATIC_BF = BindingFlags.Static | BindingFlags.NonPublic;
 
 		private static DoControlFn _doControlFn;
+		
+		public static readonly Color ICON_COLOR = EditorGUIUtility.isProSkin
+		? Color.white
+		: Color.black * 0.8f;
+		
+		public static readonly Color DIVIDER_COLOR = EditorGUIUtility.isProSkin
+		? (Color.white * 0.15f).Fade(1f)
+		: (Color.white * 0.6f).Fade(1f);
 
 		// wrapper around internal Unity GUI method
 		public static bool DoControl(Rect r, int id, bool on, bool hover, GUIContent l, GUIStyle s)

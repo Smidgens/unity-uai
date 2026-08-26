@@ -8,12 +8,12 @@ namespace Smidgenomics.Unity.UAI
 
 	[AttributeUsage(AttributeTargets.Field)]
 	[Conditional("UNITY_EDITOR")]
-	internal sealed class FloatIntervalAttribute : PropertyAttribute
+	internal sealed class UAIIntervalSliderAttribute : PropertyAttribute
 	{
 		public float Min { get; }
 		public float Max { get; } 
 		
-		public FloatIntervalAttribute(float min, float max)
+		public UAIIntervalSliderAttribute(float min, float max)
 		{
 			Min = min;
 			Max = Mathf.Max(min, max);
@@ -25,13 +25,12 @@ namespace Smidgenomics.Unity.UAI
 
 namespace Smidgenomics.Unity.UAI.Editor
 {
-	using System;
 	using UnityEngine;
 	using UnityEditor;
 	using SP = UnityEditor.SerializedProperty;
-	
-	[CustomPropertyDrawer(typeof(FloatIntervalAttribute))]
-	internal class _FloatIntervalAttribute : PropertyDrawer
+
+	[CustomPropertyDrawer(typeof(UAIIntervalSliderAttribute))]
+	internal sealed class _UAIIntervalSliderAttribute : PropertyDrawer
 	{
 		public override void OnGUI(Rect pos, SP prop, GUIContent l)
 		{
@@ -41,7 +40,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 				pos = EditorGUI.PrefixLabel(pos, l);
 			}
 
-			var attr = attribute as FloatIntervalAttribute;
+			var attr = attribute as UAIIntervalSliderAttribute;
 
 			var minVal = attr?.Min ?? 0f;
 			var maxVal = attr?.Max ?? 0f;

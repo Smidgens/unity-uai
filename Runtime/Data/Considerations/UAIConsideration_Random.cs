@@ -15,7 +15,7 @@ namespace Smidgenomics.Unity.UAI
 			return EvalScore(Random.Range(mn, mx));
 		}
 
-		[FloatInterval(0, 1)]
+		[UAIIntervalSlider(0, 1)]
 		[SerializeField] private UAIFloatRange _interval = new() { min = 0, max = 1 };
 	}
 }

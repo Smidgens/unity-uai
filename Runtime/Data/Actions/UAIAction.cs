@@ -12,6 +12,7 @@ namespace Smidgenomics.Unity.UAI
 	using IEnumerator = System.Collections.IEnumerator;
 
 	// action base
+	[UAIListField(nameof(_weight), 30f)]
 	public abstract class UAIAction :  UAINode, IUAIAction
 	{
 		/// <summary>
@@ -145,7 +146,6 @@ namespace Smidgenomics.Unity.UAI
 	}
 }
 
-
 #if UNITY_EDITOR
 
 namespace Smidgenomics.Unity.UAI.Editor
@@ -154,18 +154,17 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using UnityEditor;
 
 	[CustomEditor(typeof(UAIAction), true)]
-	internal class _UAIAction : _UAIScriptableObject
+	internal sealed class _UAIAction : _UAIScriptableObject
 	{
 		protected override void OnAfterFields()
 		{
-			// EditorGUILayout.Space();
 			DrawDivider();
 			serializedObject.UpdateIfRequiredOrScript();
 			_considerationView.OnListGUI();
 			serializedObject.ApplyModifiedProperties();
 		}
 
-		private NestedAssetList<UAIConsideration> _considerationView;
+		private NestedAssetList _considerationView;
 		private SerializedProperty _defaultCooldown;
 		private GUIContent _foldoutLabel;
 
@@ -180,69 +179,14 @@ namespace Smidgenomics.Unity.UAI.Editor
 			_considerationView?.DisposeGUI();
 		}
 
-		private static NestedAssetList<UAIConsideration> CreateConsiderationList(SerializedProperty listProp)
+		private static NestedAssetList CreateConsiderationList(SerializedProperty listProp)
 		{
-			NestedAssetList<UAIConsideration> view = new (listProp);
-			view.DefaultTypeIconGUID = UAIConstants.DEFAULT_CONSIDERATION_ICON_GUID;
-			view.DrawTypeIcon = true;
-			view.HeaderLabel = "Action Considerations";
-			view.onDrawNone = rect =>
+			return new (listProp, typeof(UAIConsideration))
 			{
-				GUI.Label(rect, "List empty, base score will default to 1.");
+				HeaderLabel = "Action Considerations",
+				EmptyText = "List empty, base score will default to 1.",
+				HeaderIcon = EUAIAtlasIcon.Consideration
 			};
-
-			view.onDrawHeader = rect =>
-			{
-				var color = EditorGUIUtility.isProSkin
-				? Color.white
-				: Color.black * 0.8f;
-				var icoRect = rect.SliceLeft(rect.height).Resized(-rect.height * 0.2f);
-				UAIEditorAtlas.GetIcon(EUAIAtlasIcon.Consideration).Draw(icoRect, color);
-			
-				
-				GUI.Label(rect, "Action Considerations", EditorStyles.boldLabel);
-			};
-			
-			view.onDrawListItem = (ref Rect rect, SerializedProperty prop, UAIConsideration so) =>
-			{
-				if (!so)
-				{
-					return;
-				}
-				var curveRect = rect.SliceRight(rect.height * 1.5f);
-				EditorGUI.BeginChangeCheck();
-				
-				var tMatrix = GUI.matrix;
-
-				EditorGUI.BeginChangeCheck();
-
-				if (so._invert)
-				{
-					GUIUtility.ScaleAroundPivot(new Vector2(-1, 1), curveRect.center);
-				}
-
-				var curveColor = so._invert
-				? Color.blue
-				: Color.green;
-				var clampRange = new Rect(0, 0, 1f, 1f);
-				var changedCurve = EditorGUI.CurveField(curveRect, new AnimationCurve(so._curve.keys), curveColor, clampRange);
-
-				GUI.matrix = tMatrix;
-				if (EditorGUI.EndChangeCheck())
-				{
-					Undo.RecordObject(so, "Change curve");
-					so._curve = changedCurve;
-				}
-				
-				var invertRect = rect.SliceRight(60f);
-				var newInvert = EditorGUI.ToggleLeft(invertRect, new GUIContent("Invert"), so._invert);
-				if (newInvert != so._invert)
-				{
-					Undo.RecordObject(so, "Toggle inverted");
-					so._invert = newInvert;
-				}
-			};
-			return view;
 		}
 		
 	}

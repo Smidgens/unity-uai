@@ -15,14 +15,17 @@ namespace Smidgenomics.Unity.UAI.Editor
 		Consideration,
 		MemoryKey,
 		Service,
-		Active = 16, // row 3
+		Invert,
+		Active = 16, // row 2
 		Cancelled,
 		Uncancellable,
 		Deactivating,
 		Finished,
 		Selectable,
 		Muted,
-		Stats = 48,
+		InvertOff = 24, // row 3
+		InvertOn,
+		Stats = 48, // row 6
 		Timeline,
 		SelectRandom = 56, // row 7
 		SelectTop,

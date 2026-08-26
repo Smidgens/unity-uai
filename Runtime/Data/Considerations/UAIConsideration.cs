@@ -1,12 +1,11 @@
 // smidgens @ github
 
-// ReSharper disable All
-
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
-	using System;
 
+	[UAIListField(nameof(_curve), 25f)]
+	[UAIListField(nameof(_invert), 22f)]
 	public abstract class UAIConsideration : UAIScriptableObject, IUAIConsideration
 	{
 		public abstract float GetScore(in UAIAgentContext context);
@@ -25,12 +24,13 @@ namespace Smidgenomics.Unity.UAI
 			return _invert ? 1 - score : score;
 		}
 
-		// [SOArrayColumn(60f, true)]
 		[HideInInspector]
-		[SerializeField] internal bool _invert = false;
+		[Tooltip("Invert score")]
+		[UAIToggleIcon(24,25)]
+		[SerializeField] internal bool _invert;
 		
-		// [SOArrayColumn(50)]
 		[HideInInspector]
+		[UAICurve(x:0,y:0,w:1, h:1)]
 		[SerializeField] internal AnimationCurve _curve = AnimationCurve.Linear(0, 0, 1, 1);
 	}
 }
@@ -39,15 +39,7 @@ namespace Smidgenomics.Unity.UAI
 
 namespace Smidgenomics.Unity.UAI.Editor
 {
-	using UnityEngine;
 	using UnityEditor;
-	using System;
-	using System.Linq;
-	using System.Collections.Generic;
-	using System.Reflection;
-	using UObject = UnityEngine.Object;
-	using SP = UnityEditor.SerializedProperty;
-	using RL = UnityEditorInternal.ReorderableList;
 
 	[CustomEditor(typeof(UAIConsideration), true)]
 	internal sealed class _UAIConsideration : _UAIScriptableObject
