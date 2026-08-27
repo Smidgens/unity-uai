@@ -1,9 +1,9 @@
 {
   "name": "com.smidgenomics.unity-uai",
   "version": "0.1.0",
-  "displayName": "Utility AI",
+  "displayName": "SM Utility AI",
   "description": "Utility (Game) AI for Unity",
-  "license": "NON-AI-MIT",
+  "license": "MIT NON-AI",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Smidgens/unity-uai.git"

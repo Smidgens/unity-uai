@@ -2,7 +2,7 @@
 
 #pragma warning disable 0414
 
-// #if ENABLE_NAVIGATION_UI_REQUIRES_PACKAGE
+#if SM_UAI_AI
 
 namespace Smidgenomics.Unity.UAI
 {
@@ -76,9 +76,8 @@ namespace Smidgenomics.Unity.UAI
 
 			return false;
 		}
-		
-
-		
 
 	}
 }
+
+#endif

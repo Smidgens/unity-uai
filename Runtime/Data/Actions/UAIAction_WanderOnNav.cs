@@ -2,6 +2,8 @@
 
 #pragma warning disable 0414
 
+#if SM_UAI_AI
+
 namespace Smidgenomics.Unity.UAI
 {
 	using UnityEngine;
@@ -128,3 +130,5 @@ namespace Smidgenomics.Unity.UAI
 
 	}
 }
+
+#endif
