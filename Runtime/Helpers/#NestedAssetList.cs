@@ -61,6 +61,31 @@ namespace Smidgenomics.Unity.UAI.Editor
 				drawNoneElementCallback = DrawEmpty,
 				footerHeight = 0f
 			};
+			
+			var selectColor = EditorGUIUtility.isProSkin
+			? new Color(0.172549f, 0.3647059f, 0.5294118f)
+			: new Color(0.227451f, 0.4470588f, 0.6901961f);
+
+			// var selectColor = EditorGUIUtility.isProSkin
+			// ? Color.black.Fade(0.2f)
+			// : Color.black.Fade(0.22f);
+
+			_assetList.drawElementBackgroundCallback = (rect, index, active, focused) =>
+			{
+				if (_assetList.index == index && index > -1)
+				{
+					var left = rect.SliceLeft(2f);
+					var leftColor = EditorGUIUtility.isProSkin
+					? Color.white
+					: Color.cyan;
+					EditorGUI.DrawRect(left, leftColor);
+					var c = rect.center;
+					rect.width -= 2;
+					rect.center = c;
+					EditorGUI.DrawRect(rect, selectColor.Fade(0.5f));
+					GUI.Box(rect, GUIContent.none, EditorStyles.helpBox);
+				}
+			};
 		}
 
 		private void DrawEmpty(Rect r)
