@@ -10,6 +10,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using System.Collections.Generic;
 	using System.Reflection;
 	using System.ComponentModel;
+	using UnityEditor.Search;
 
 	/**
 	 *
@@ -69,17 +70,18 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 			return true;
 		}
-
-		public static GenericMenu CreateTypeMenu(Type baseType,  GenericMenu.MenuFunction2 fn, string defaultLabel = "(none)")
+		
+		public static GenericDropdown<Type> CreateTypeDropdown(Type baseType,  Action<Type> fn, string defaultLabel = "(none)")
 		{
-			var menu = new GenericMenu();
-
+			var dropdown = new GenericDropdown<Type>(ObjectNames.NicifyVariableName(baseType.Name));
+			dropdown.onSelected = fn;
+			
 			var types = GetDerivedTypes(baseType);
 
 			if (!string.IsNullOrEmpty(defaultLabel))
 			{
-				menu.AddItem(new GUIContent(defaultLabel), false, fn, null);
-				menu.AddSeparator(string.Empty);
+				dropdown.AddItem(defaultLabel, null);
+				dropdown.AddSeparator(string.Empty);
 			}
 
 			Assembly currentAssembly = null;
@@ -95,16 +97,16 @@ namespace Smidgenomics.Unity.UAI.Editor
 				{
 					if (currentAssembly != null)
 					{
-						menu.AddSeparator("");
+						// dropdown.AddSeparator("");
 					}
 					currentAssembly = type.Assembly;
-					menu.AddDisabledItem(new GUIContent(currentAssembly.GetName().Name));
 				}
-				
+
 				var dname = GetTypeLabel(type);
-				menu.AddItem(dname, false, fn,  type);
+				var icon = SearchUtils.GetTypeIcon(type);
+				dropdown.AddItem(dname.text, type, icon:icon);
 			}
-			return menu;
+			return dropdown;
 		}
 
 		private static GUIContent GetTypeLabel(Type type)

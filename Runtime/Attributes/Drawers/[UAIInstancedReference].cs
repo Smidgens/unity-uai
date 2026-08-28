@@ -117,15 +117,14 @@ namespace Smidgenomics.Unity.UAI
 				return;
 			}
 
-			var m = UAIEditorUtils.CreateTypeMenu(GetFieldType(), o =>
+			var dropdown = UAIEditorUtils.CreateTypeDropdown(GetFieldType(), newType =>
 			{
-				var newType = (Type)o;
 				if (newType == currentType)
 				{
 					return;
 				}
 
-				if (o == null)
+				if (newType == null)
 				{
 					prop.managedReferenceValue = null;
 					prop.serializedObject.ApplyModifiedProperties();
@@ -135,8 +134,30 @@ namespace Smidgenomics.Unity.UAI
 				prop.managedReferenceValue = Activator.CreateInstance(newType);
 				prop.serializedObject.ApplyModifiedProperties();
 			}, defLabel);
-			
-			m.DropDown(pos);
+			dropdown.currentValue = currentType;
+
+			dropdown.Show(pos, 400f);
+
+			// var m = UAIEditorUtils.CreateTypeMenu(GetFieldType(), o =>
+			// {
+			// 	var newType = (Type)o;
+			// 	if (newType == currentType)
+			// 	{
+			// 		return;
+			// 	}
+			//
+			// 	if (o == null)
+			// 	{
+			// 		prop.managedReferenceValue = null;
+			// 		prop.serializedObject.ApplyModifiedProperties();
+			// 		return;
+			// 	}
+			// 	
+			// 	prop.managedReferenceValue = Activator.CreateInstance(newType);
+			// 	prop.serializedObject.ApplyModifiedProperties();
+			// }, defLabel);
+			//
+			// m.DropDown(pos);
 			
 		}
 

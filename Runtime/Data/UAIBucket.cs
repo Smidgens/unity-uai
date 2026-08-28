@@ -30,6 +30,7 @@ namespace Smidgenomics.Unity.UAI
 
 		[UAIInstancedReference(defaultValueLabel = "Default")]
 		[SerializeReference]
+		[SerializeField]
 		internal UAISelector _actionSelector = new UAISelector_TopScore();
 
 		[SerializeField, HideInInspector] internal SOArray<UAIAction> _actions = new();

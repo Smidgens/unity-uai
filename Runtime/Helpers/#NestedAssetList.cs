@@ -48,7 +48,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 			_inlineFields = inlineFields;
 			_outerProp = prop;
 			_arrayProp = prop.FindPropertyRelative(nameof(SOArray<UAIScriptableObject>._array));
-			_addContext = UAIEditorUtils.CreateTypeMenu(ElementType, OnAddOption, null);
+			_addDropdown = UAIEditorUtils.CreateTypeDropdown(ElementType, OnAddOption, null);
+			
 			_assetList = new ReorderableList(_arrayProp.serializedObject, _arrayProp)
 			{
 				drawHeaderCallback = DrawHeader,
@@ -106,7 +107,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 		private string _defaultIconGuid;
 		private GUIContent _contextIcon;
 		private float _ctxButtonHeight;
-		private readonly GenericMenu _addContext;
+		private readonly GenericDropdown<Type> _addDropdown;
+
 		private readonly GUIContent _addBtn = EditorGUIUtility.IconContent("Toolbar Plus More");
 		private readonly IReadOnlyList<(FieldInfo, float)> _inlineFields;
 
@@ -141,7 +143,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 			return _outerProp.displayName;
 		}
 
-
 		private void DrawHeader(Rect rect)
 		{
 			var btnSize = EditorStyles.iconButton.CalcSize(_addBtn);
@@ -160,7 +161,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 			GUI.Label(rect, GetDisplayName(), EditorStyles.boldLabel);
 			if (GUI.Button(btnRect, _addBtn, EditorStyles.iconButton))
 			{
-				_addContext.DropDown(btnRect);
+				_addDropdown.Show(btnRect, 400f);
 			}
 			
 		}
@@ -213,10 +214,10 @@ namespace Smidgenomics.Unity.UAI.Editor
 				destroyList.ForEach(Undo.DestroyObjectImmediate);
 			}
 		}
-
-		private void OnAddOption(object option)
+		
+		private void OnAddOption(Type type)
 		{
-			EditorApplication.delayCall += () => AddAsset(option as Type, _arrayProp);
+			EditorApplication.delayCall += () => AddAsset(type, _arrayProp);
 		}
 
 		private void EnsureInspector()
