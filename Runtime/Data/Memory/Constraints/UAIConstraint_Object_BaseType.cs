@@ -10,6 +10,7 @@ namespace Smidgenomics.Unity.UAI
 	/// TODO: Better inspector with helpful type info
 	/// </summary>
 	[DisplayName("Base Type")]
+	[System.Serializable]
 	internal sealed class UAIConstraint_Object_BaseType : UAIConstraint_Object
 	{
 		public override bool Validate(object value)

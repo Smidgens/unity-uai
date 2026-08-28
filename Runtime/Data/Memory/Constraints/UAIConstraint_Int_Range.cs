@@ -6,6 +6,7 @@ namespace Smidgenomics.Unity.UAI
 	using UnityEngine;
 
 	[DisplayName("Range")]
+	[System.Serializable]
 	internal sealed class UAIConstraint_Int_Range : UAIConstraint_Int
 	{
 		public override int Clamp(int value)
