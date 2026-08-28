@@ -73,7 +73,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 		
 		public static GenericDropdown<Type> CreateTypeDropdown(Type baseType,  Action<Type> fn, string defaultLabel = "(none)")
 		{
-			var dropdown = new GenericDropdown<Type>(ObjectNames.NicifyVariableName(baseType.Name));
+			var dropdown = GenericDropdown<Type>.Create(ObjectNames.NicifyVariableName(baseType.Name));
 			dropdown.onSelected = fn;
 			
 			var types = GetDerivedTypes(baseType);

@@ -8,9 +8,8 @@ namespace Smidgenomics.Unity.UAI.Editor
 	using UnityEngine;
 	using UnityEditor;
 	using System.Collections.Generic;
+	using System.Reflection;
 	using UnityEditor.IMGUI.Controls;
-	using UnityEditor.Search;
-	using UnityEngine.Rendering.VirtualTexturing;
 
 	/// <summary>
 	/// General-use dropdown window
@@ -18,12 +17,19 @@ namespace Smidgenomics.Unity.UAI.Editor
 	[Serializable]
 	internal sealed class GenericDropdown<T> : AdvancedDropdown
 	{
-		public GenericDropdown(string title, T currentValue = default, AdvancedDropdownState state = null) : base(state ?? new AdvancedDropdownState())
+		public static GenericDropdown<T> Create(string title, T currentValue = default)
 		{
+			return new GenericDropdown<T>(title, currentValue, new AdvancedDropdownState());
+		}
+
+		private GenericDropdown(string title, T currentValue, AdvancedDropdownState state) : base(state)
+		{
+			_state = state;
 			_rootNode = new Node
 			{
 				name = title
 			};
+			
 			this.currentValue = currentValue;
 		}
 
@@ -38,15 +44,17 @@ namespace Smidgenomics.Unity.UAI.Editor
 
 		private float _minHeight = 200f;
 
+		private AdvancedDropdownState _state;
+
 		public void AddItem(string label, T value, Texture2D icon = null, bool enabled = true)
 		{
 			var newNode = _rootNode.AddChild(label);
 			newNode.valueIndex = _values.Count;
 			newNode.icon = icon;
 			newNode.enabled = enabled;
-			_values.Add(value);
+			_values.Add((newNode, value));
 		}
-		
+
 		public void AddSeparator(string path)
 		{
 			// TODO: use path
@@ -61,12 +69,12 @@ namespace Smidgenomics.Unity.UAI.Editor
 			var maxWidth = Mathf.Max(pos.width * 1.5f, Mathf.Max(200f, titleWidth));
 			SetLastDropdownHeight(pos, maxHeight, maxWidth);
 		}
-		
+
 		protected override void ItemSelected(AdvancedDropdownItem item)
 		{
-			if (item is TypedDropdownItem { valueIndex: > -1 } it)
+			if (item is GenericDropdownItem { valueIndex: > -1 } it)
 			{
-				var value = _values[it.valueIndex];
+				var value = _values[it.valueIndex].Item2;
 				if (!AreEqual(value, currentValue))
 				{
 					onSelected?.Invoke(value);
@@ -74,13 +82,32 @@ namespace Smidgenomics.Unity.UAI.Editor
 			}
 		}
 
-		protected override AdvancedDropdownItem BuildRoot()
+		// cached delegate for setting selected index of item
+		private Action<AdvancedDropdownItem, int> _setStateIndexFn;
+
+		private void SetSelectedOfItem(AdvancedDropdownItem item, int newIndex)
 		{
-			var currIndex = _values.FindIndex(v => AreEqual(v, currentValue));
-			return _rootNode.GetDropdownItem(currIndex);
+			// hack to work around unity obnoxiously not exposing
+			// any way to change the initial dropdown state
+			// (and it's been like that for years jfc)
+			if (_setStateIndexFn == null)
+			{
+				var m = typeof(AdvancedDropdownState)
+				.GetMethod("SetSelectedIndex", BindingFlags.Instance | BindingFlags.NonPublic);
+				_setStateIndexFn = (Action<AdvancedDropdownItem, int>)m?.CreateDelegate(typeof(Action<AdvancedDropdownItem, int>), _state);
+			}
+			_setStateIndexFn?.Invoke(item, newIndex);
 		}
 
-		private List<T> _values = new();
+		protected override AdvancedDropdownItem BuildRoot()
+		{
+			var currIndex = _values.FindIndex(v => AreEqual(v.Item2, currentValue));
+			var root = _rootNode.GetDropdownItem(currIndex);
+			SetSelectedOfItem(root, -1);
+			return root;
+		}
+
+		private List<(Node, T)> _values = new();
 		private Node _rootNode;
 
 		private sealed class Node
@@ -92,9 +119,9 @@ namespace Smidgenomics.Unity.UAI.Editor
 			public Node parent { get; private set; }
 			private readonly List<Node> _children = new();
 
-			public AdvancedDropdownItem GetDropdownItem(int currIndex = -1)
+			public GenericDropdownItem GetDropdownItem(int currIndex = -1, GenericDropdownItem iParent = null)
 			{
-				var item = new TypedDropdownItem(name, valueIndex)
+				var item = new GenericDropdownItem(name, valueIndex, iParent)
 				{
 					enabled = enabled && (valueIndex != currIndex || valueIndex < 0),
 					icon = icon
@@ -106,7 +133,7 @@ namespace Smidgenomics.Unity.UAI.Editor
 						item.AddSeparator();
 						continue;
 					}
-					item.AddChild(c.GetDropdownItem(currIndex));
+					item.AddChild(c.GetDropdownItem(currIndex, item));
 				}
 				return item;
 			}
@@ -171,12 +198,14 @@ namespace Smidgenomics.Unity.UAI.Editor
 			
 		}
 
-		private sealed class TypedDropdownItem : AdvancedDropdownItem
+		private sealed class GenericDropdownItem : AdvancedDropdownItem
 		{
-			public TypedDropdownItem(string name, int vIndex) : base(name)
+			public GenericDropdownItem(string name, int vIndex, GenericDropdownItem parent = null) : base(name)
 			{
 				valueIndex = vIndex;
+				this.parent = parent;
 			}
+			public GenericDropdownItem parent { get; }
 			public int valueIndex { get; }
 		}
 
@@ -188,7 +217,6 @@ namespace Smidgenomics.Unity.UAI.Editor
 			return h1 == h2;
 		}
 
-		
 		// hack to force height
 		private static void SetLastDropdownHeight(Rect rect, float maxHeight, float maxWidth = 0f)
 		{
