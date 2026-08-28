@@ -11,7 +11,7 @@ namespace Smidgenomics.Unity.UAI
 	using System.ComponentModel;
 	using UnityEngine.AI;
 
-	[DisplayName("Navigation/Destination from Memory")]
+	[DisplayName("AI Navigation/Destination from Memory")]
 	internal sealed class UAIAction_NavFromMemory : UAIAction
 	{
 		public override IEnumerator ActivateAction()

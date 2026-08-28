@@ -11,7 +11,7 @@ namespace Smidgenomics.Unity.UAI
 	using System.ComponentModel;
 	using UnityEngine.AI;
 
-	[DisplayName("Navigation/Wander")]
+	[DisplayName("AI Navigation/Wander")]
 	internal sealed class UAIAction_WanderOnNav : UAIAction
 	{
 		public override IEnumerator ActivateAction()
